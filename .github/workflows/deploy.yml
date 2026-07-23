@@ -1,0 +1,154 @@
+name: Deploy to Standard Azure Container Apps
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions: {}
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  AZURE_CORE_OUTPUT: none
+  RESOURCE_GROUP: rg-agent-governance-demo
+  LOCATION: eastasia
+  CONTAINER_APP_NAME: ca-agent-governance-standard
+  IMAGE_REPOSITORY: agent-governance-demo
+  ACR_NAME: ${{ vars.AZURE_ACR_NAME }}
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Build and test before deployment
+        run: |
+          dotnet restore AgentGovernanceDemo.slnx --nologo
+          dotnet build AgentGovernanceDemo.slnx --configuration Release --no-restore --nologo
+          dotnet test AgentGovernanceDemo.slnx --configuration Release --no-build --nologo
+
+      - name: Validate required configuration
+        shell: pwsh
+        env:
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          $required = @{
+            AZURE_ACR_NAME = $env:ACR_NAME
+            AZURE_CLIENT_ID = $env:AZURE_CLIENT_ID
+            AZURE_TENANT_ID = $env:AZURE_TENANT_ID
+            AZURE_SUBSCRIPTION_ID = $env:AZURE_SUBSCRIPTION_ID
+          }
+          $missing = $required.GetEnumerator() |
+            Where-Object { [string]::IsNullOrWhiteSpace([string] $_.Value) } |
+            ForEach-Object Key
+          if ($missing) {
+            throw "Missing GitHub environment configuration: $($missing -join ', ')"
+          }
+
+      - name: Azure login with OIDC
+        uses: azure/login@1384c340ab2dda50fed2bee3041d1d87018aa5e8 # v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Ensure resource group
+        run: az group create --name "$RESOURCE_GROUP" --location "$LOCATION" --only-show-errors --output none
+
+      - name: Set up Container Apps CLI extension
+        run: >
+          az extension add
+          --name containerapp
+          --upgrade
+          --allow-preview true
+          --only-show-errors
+
+      - name: Deploy private infrastructure
+        id: infrastructure
+        shell: pwsh
+        run: |
+          $deploymentName = "infrastructure-${{ github.run_id }}"
+          az deployment group create `
+            --name $deploymentName `
+            --resource-group $env:RESOURCE_GROUP `
+            --template-file infra/main.bicep `
+            --parameters `
+              location=$env:LOCATION `
+              environmentName=demo `
+              containerRegistryName=$env:ACR_NAME `
+            --only-show-errors `
+            --output none
+          if ($LASTEXITCODE -ne 0) { throw 'Infrastructure deployment failed.' }
+
+          $outputs = az deployment group show `
+            --name $deploymentName `
+            --resource-group $env:RESOURCE_GROUP `
+            --query properties.outputs `
+            --output json | ConvertFrom-Json
+          if ($LASTEXITCODE -ne 0) { throw 'Unable to read infrastructure outputs.' }
+
+          Write-Output "::add-mask::$($outputs.applicationInsightsConnectionString.value)"
+          "container_apps_environment_name=$($outputs.containerAppsEnvironmentName.value)" >> $env:GITHUB_OUTPUT
+          "runtime_identity_resource_id=$($outputs.runtimeIdentityResourceId.value)" >> $env:GITHUB_OUTPUT
+          "runtime_identity_client_id=$($outputs.runtimeIdentityClientId.value)" >> $env:GITHUB_OUTPUT
+          "storage_account_uri=$($outputs.storageAccountUri.value)" >> $env:GITHUB_OUTPUT
+          "audit_container_name=$($outputs.auditContainerName.value)" >> $env:GITHUB_OUTPUT
+          "app_insights_connection_string=$($outputs.applicationInsightsConnectionString.value)" >> $env:GITHUB_OUTPUT
+
+      - name: Build and push image in ACR
+        shell: pwsh
+        run: |
+          $image = '{0}:{1}' -f $env:IMAGE_REPOSITORY, $env:GITHUB_SHA
+          az acr build `
+            --registry $env:ACR_NAME `
+            --image $image `
+            --platform linux/amd64 `
+            --file src/AgentGovernanceDemo/Dockerfile `
+            . `
+            --only-show-errors
+          if ($LASTEXITCODE -ne 0) { throw 'ACR image build failed.' }
+
+      - name: Deploy Standard container app
+        shell: pwsh
+        env:
+          ACA_ENVIRONMENT_NAME: ${{ steps.infrastructure.outputs.container_apps_environment_name }}
+          RUNTIME_IDENTITY_RESOURCE_ID: ${{ steps.infrastructure.outputs.runtime_identity_resource_id }}
+          RUNTIME_IDENTITY_CLIENT_ID: ${{ steps.infrastructure.outputs.runtime_identity_client_id }}
+          APP_INSIGHTS_CONNECTION_STRING: ${{ steps.infrastructure.outputs.app_insights_connection_string }}
+          STORAGE_ACCOUNT_URI: ${{ steps.infrastructure.outputs.storage_account_uri }}
+          AUDIT_CONTAINER_NAME: ${{ steps.infrastructure.outputs.audit_container_name }}
+        run: |
+          $parameters = @{
+            ResourceGroupName = $env:RESOURCE_GROUP
+            EnvironmentName = $env:ACA_ENVIRONMENT_NAME
+            ContainerAppName = $env:CONTAINER_APP_NAME
+            ContainerRegistryName = $env:ACR_NAME
+            Image = '{0}.azurecr.io/{1}:{2}' -f $env:ACR_NAME, $env:IMAGE_REPOSITORY, $env:GITHUB_SHA
+            RuntimeIdentityResourceId = $env:RUNTIME_IDENTITY_RESOURCE_ID
+            RuntimeIdentityClientId = $env:RUNTIME_IDENTITY_CLIENT_ID
+            StorageAccountUri = $env:STORAGE_ACCOUNT_URI
+            AuditContainerName = $env:AUDIT_CONTAINER_NAME
+            ApplicationInsightsConnectionString = $env:APP_INSIGHTS_CONNECTION_STRING
+          }
+          & ./scripts/deploy-standard.ps1 @parameters

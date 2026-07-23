@@ -1,0 +1,55 @@
+:root {
+    color-scheme: dark;
+    font-family: Inter, "Segoe UI", system-ui, sans-serif;
+    background: #070e1c;
+    color: #edf6ff;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    background: #070e1c;
+}
+
+body {
+    background:
+        radial-gradient(circle at 16% 8%, rgba(40, 129, 255, 0.15), transparent 30rem),
+        radial-gradient(circle at 84% 82%, rgba(27, 201, 161, 0.11), transparent 34rem),
+        #070e1c;
+    color: #edf6ff;
+    margin: 0;
+    min-height: 100vh;
+}
+
+button, input, select, textarea {
+    font: inherit;
+}
+
+button:focus-visible, a:focus-visible, input:focus-visible, summary:focus-visible {
+    outline: 2px solid #74d1ff;
+    outline-offset: 3px;
+}
+
+a {
+    color: #74d1ff;
+}
+
+.muted {
+    color: #8fa5bd;
+}
+
+.mono {
+    font-family: "Cascadia Code", Consolas, monospace;
+}
+
+.blazor-error-boundary {
+    background: #7c2634;
+    color: white;
+    padding: 1rem;
+}
+
+.blazor-error-boundary::after {
+    content: "エラーが発生しました。";
+}

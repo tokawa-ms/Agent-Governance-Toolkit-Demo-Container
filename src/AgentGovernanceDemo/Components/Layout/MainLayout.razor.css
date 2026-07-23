@@ -1,0 +1,79 @@
+.app-shell {
+    min-height: 100vh;
+}
+
+.app-header {
+    align-items: center;
+    backdrop-filter: blur(18px);
+    background: rgba(7, 14, 28, 0.86);
+    border-bottom: 1px solid rgba(116, 209, 255, 0.16);
+    display: flex;
+    justify-content: space-between;
+    padding: 1.15rem clamp(1rem, 3vw, 3rem);
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+.app-header h1 {
+    font-size: clamp(1.25rem, 2vw, 1.8rem);
+    letter-spacing: -0.03em;
+    margin: 0;
+}
+
+.eyebrow {
+    color: #74d1ff;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    margin: 0 0 0.25rem;
+}
+
+.environment-pill {
+    align-items: center;
+    background: rgba(46, 211, 154, 0.08);
+    border: 1px solid rgba(46, 211, 154, 0.25);
+    border-radius: 999px;
+    color: #9df0cf;
+    display: flex;
+    font-size: 0.78rem;
+    gap: 0.5rem;
+    padding: 0.45rem 0.75rem;
+}
+
+.status-dot {
+    background: #2ed39a;
+    border-radius: 50%;
+    box-shadow: 0 0 0 4px rgba(46, 211, 154, 0.12);
+    height: 0.45rem;
+    width: 0.45rem;
+}
+
+.app-main {
+    padding: clamp(1rem, 2.5vw, 2.5rem);
+}
+
+@media (max-width: 620px) {
+    .environment-pill {
+        display: none;
+    }
+}
+
+#blazor-error-ui {
+    background: #7c2634;
+    bottom: 0;
+    box-shadow: 0 -1px 2px rgba(0, 0, 0, 0.2);
+    display: none;
+    left: 0;
+    padding: 0.6rem 1.25rem 0.7rem 1.25rem;
+    position: fixed;
+    width: 100%;
+    z-index: 1000;
+}
+
+    #blazor-error-ui .dismiss {
+        cursor: pointer;
+        position: absolute;
+        right: 0.75rem;
+        top: 0.5rem;
+    }

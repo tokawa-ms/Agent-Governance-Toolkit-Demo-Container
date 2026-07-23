@@ -1,0 +1,144 @@
+@using System.Text.Json
+@using AgentGovernance.Audit
+@using AgentGovernanceDemo.Audit
+@using AgentGovernanceDemo.Integration
+
+<article class="audit-view" aria-labelledby="@HeadingId">
+    <header class="audit-header">
+        <div>
+            <p class="section-label">PERSISTED AUDIT</p>
+            <h3 id="@HeadingId">Blob に保存された監査レコード</h3>
+        </div>
+        <span class="record-count">@Records.Count 件</span>
+    </header>
+
+    <div class="audit-context">
+        <div>
+            <span>現在の監査セッション</span>
+            <code title="@SessionId">@DisplaySessionId</code>
+        </div>
+        <button class="reload-action"
+                type="button"
+                disabled="@IsRestoring"
+                @onclick="OnReload">
+            @(IsRestoring ? "復元中…" : "Blob から再読込")
+        </button>
+    </div>
+
+    <div class="storage-message @StorageStateClass"
+         role="status"
+         aria-live="polite">
+        @StorageHealth.Message
+    </div>
+
+    @if (Records.Count == 0)
+    {
+        <div class="empty-state">
+            <span class="empty-icon" aria-hidden="true">◫</span>
+            <h4>永続化済みイベントはありません</h4>
+            <p>Blob Append に成功したレコードだけが表示されます。</p>
+        </div>
+    }
+    else
+    {
+        <ol class="audit-list" aria-live="polite">
+            @foreach (var record in Records.OrderByDescending(item => item.Timestamp))
+            {
+                var denied = IsDenied(record);
+                <li class="audit-record">
+                    <div class="audit-summary">
+                        <div>
+                            <span class="outcome-badge @(denied ? "deny" : "allow")">
+                                @(denied ? "拒否" : "許可")
+                            </span>
+                            <strong>@EventTypeLabel(record.Type)</strong>
+                        </div>
+                        <time datetime="@record.Timestamp.ToString("O")">
+                            @record.Timestamp.ToLocalTime().ToString("yyyy/MM/dd HH:mm:ss.fff")
+                        </time>
+                    </div>
+                    <dl>
+                        <div>
+                            <dt>イベント</dt>
+                            <dd><code>@record.EventId</code></dd>
+                        </div>
+                        <div>
+                            <dt>ポリシー</dt>
+                            <dd>@(record.PolicyName ?? "—")</dd>
+                        </div>
+                    </dl>
+                    <details>
+                        <summary>JSON 詳細を表示</summary>
+                        <pre>@FormatJson(record)</pre>
+                    </details>
+                </li>
+            }
+        </ol>
+    }
+</article>
+
+@code {
+    private static readonly JsonSerializerOptions DisplayJsonOptions = new()
+    {
+        WriteIndented = true
+    };
+
+    private readonly string HeadingId = $"audit-heading-{Guid.NewGuid():N}";
+
+    [Parameter, EditorRequired]
+    public IReadOnlyList<GovernanceAuditRecord> Records { get; set; } = [];
+
+    [Parameter, EditorRequired]
+    public string SessionId { get; set; } = string.Empty;
+
+    [Parameter]
+    public string? ShortSessionId { get; set; }
+
+    [Parameter, EditorRequired]
+    public StorageHealthSnapshot StorageHealth { get; set; } = new(
+        StorageHealthState.Unverified,
+        "Blob Storage への接続はまだ確認されていません。");
+
+    [Parameter]
+    public bool IsRestoring { get; set; }
+
+    [Parameter]
+    public EventCallback OnReload { get; set; }
+
+    private string DisplaySessionId =>
+        string.IsNullOrWhiteSpace(ShortSessionId) ? SessionId : ShortSessionId;
+
+    private string StorageStateClass => StorageHealth.State switch
+    {
+        StorageHealthState.Healthy => "healthy",
+        StorageHealthState.Failed => "failed",
+        _ => "degraded"
+    };
+
+    private static bool IsDenied(GovernanceAuditRecord record)
+    {
+        if (record.Type is GovernanceEventType.PolicyViolation
+            or GovernanceEventType.ToolCallBlocked
+            or GovernanceEventType.TrustFailed)
+        {
+            return true;
+        }
+
+        var json = FormatJson(record);
+        return json.Contains("\"Allowed\": false", StringComparison.OrdinalIgnoreCase)
+            || json.Contains("\"allowed\": false", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string FormatJson(GovernanceAuditRecord record) =>
+        JsonSerializer.Serialize(record, DisplayJsonOptions);
+
+    private static string EventTypeLabel(GovernanceEventType type) => type switch
+    {
+        GovernanceEventType.PolicyCheck => "ポリシーチェック",
+        GovernanceEventType.PolicyViolation => "ポリシー違反",
+        GovernanceEventType.ToolCallBlocked => "ツール呼び出し拒否",
+        GovernanceEventType.TrustFailed => "信頼検証失敗",
+        GovernanceEventType.TrustVerified => "信頼検証成功",
+        _ => type.ToString()
+    };
+}

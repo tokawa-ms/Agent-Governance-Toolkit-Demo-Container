@@ -1,0 +1,291 @@
+.audit-view {
+    background: rgba(10, 20, 37, 0.86);
+    border: 1px solid rgba(130, 175, 216, 0.16);
+    border-radius: 18px;
+    box-shadow: 0 20px 70px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    width: 100%;
+}
+
+.audit-header,
+.audit-context,
+.audit-summary,
+.audit-summary > div {
+    align-items: center;
+    display: flex;
+    justify-content: space-between;
+}
+
+.audit-header {
+    border-bottom: 1px solid rgba(130, 175, 216, 0.12);
+    gap: 1rem;
+    padding: 1.05rem 1.2rem;
+}
+
+.audit-header h3 {
+    font-size: 1.05rem;
+    margin: 0.2rem 0 0;
+}
+
+.section-label {
+    color: #74d1ff;
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.16em;
+    margin: 0;
+}
+
+.record-count {
+    background: rgba(116, 209, 255, 0.1);
+    border-radius: 999px;
+    color: #a9dfff;
+    flex: 0 0 auto;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.35rem 0.65rem;
+}
+
+.audit-context {
+    background: rgba(18, 34, 57, 0.55);
+    border-bottom: 1px solid rgba(130, 175, 216, 0.12);
+    gap: 1rem;
+    padding: 0.75rem 1.2rem;
+}
+
+.audit-context > div {
+    display: grid;
+    gap: 0.2rem;
+    min-width: 0;
+}
+
+.audit-context span {
+    color: #8197af;
+    font-size: 0.68rem;
+}
+
+.audit-context code {
+    color: #b8d9ee;
+    font-size: 0.76rem;
+    overflow-wrap: anywhere;
+}
+
+.reload-action {
+    background: transparent;
+    border: 0;
+    border-radius: 9px;
+    color: #74d1ff;
+    cursor: pointer;
+    flex: 0 0 auto;
+    font-size: 0.75rem;
+    font-weight: 700;
+    min-height: 36px;
+    padding: 0.5rem 0.75rem;
+}
+
+.reload-action:hover:not(:disabled) {
+    background: rgba(116, 209, 255, 0.08);
+}
+
+.reload-action:focus-visible {
+    outline: 2px solid #74d1ff;
+    outline-offset: 2px;
+}
+
+.reload-action:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.storage-message {
+    background: rgba(12, 24, 42, 0.72);
+    border-bottom: 1px solid rgba(130, 175, 216, 0.1);
+    font-size: 0.72rem;
+    line-height: 1.45;
+    padding: 0.65rem 1.2rem;
+}
+
+.storage-message.healthy {
+    color: #8eebc8;
+}
+
+.storage-message.degraded {
+    color: #ffd486;
+}
+
+.storage-message.failed {
+    color: #ff9ca9;
+}
+
+.empty-state {
+    align-items: center;
+    color: #8499b1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 320px;
+    padding: 2rem;
+    text-align: center;
+}
+
+.empty-state h4 {
+    color: #c9d7e6;
+    margin: 0.85rem 0 0.35rem;
+}
+
+.empty-state p {
+    font-size: 0.82rem;
+    line-height: 1.55;
+    margin: 0;
+}
+
+.empty-icon {
+    align-items: center;
+    background: rgba(116, 209, 255, 0.07);
+    border: 1px solid rgba(116, 209, 255, 0.15);
+    border-radius: 12px;
+    color: #74d1ff;
+    display: flex;
+    height: 2.8rem;
+    justify-content: center;
+    width: 2.8rem;
+}
+
+.audit-list {
+    display: grid;
+    gap: 0.9rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    list-style: none;
+    margin: 0;
+    padding: 1.2rem;
+}
+
+.audit-record {
+    background: rgba(18, 34, 57, 0.62);
+    border: 1px solid rgba(130, 175, 216, 0.13);
+    border-radius: 11px;
+    min-width: 0;
+    padding: 0.95rem;
+}
+
+.audit-summary {
+    gap: 0.75rem;
+}
+
+.audit-summary > div {
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.audit-summary strong {
+    color: #dce9f7;
+    font-size: 0.82rem;
+}
+
+.audit-summary time {
+    color: #8298b0;
+    flex: 0 0 auto;
+    font-size: 0.7rem;
+}
+
+.outcome-badge {
+    border-radius: 999px;
+    display: inline-block;
+    flex: 0 0 auto;
+    font-size: 0.67rem;
+    font-weight: 750;
+    padding: 0.22rem 0.48rem;
+    white-space: nowrap;
+}
+
+.outcome-badge.allow {
+    background: rgba(46, 211, 154, 0.12);
+    color: #8eebc8;
+}
+
+.outcome-badge.deny {
+    background: rgba(248, 101, 120, 0.12);
+    color: #ff9ca9;
+}
+
+.audit-record dl {
+    display: grid;
+    gap: 0.3rem;
+    margin: 0.75rem 0;
+}
+
+.audit-record dl div {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: 62px minmax(0, 1fr);
+}
+
+.audit-record dt {
+    color: #7890a9;
+    font-size: 0.69rem;
+}
+
+.audit-record dd {
+    color: #a8bbcf;
+    font-size: 0.72rem;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
+.audit-record details {
+    border-top: 1px solid rgba(130, 175, 216, 0.1);
+    padding-top: 0.65rem;
+}
+
+.audit-record summary {
+    color: #74d1ff;
+    cursor: pointer;
+    font-size: 0.72rem;
+}
+
+.audit-record pre {
+    background: #07101d;
+    border-radius: 8px;
+    color: #b8cee2;
+    font: 0.68rem/1.55 "Cascadia Code", Consolas, monospace;
+    margin: 0.65rem 0 0;
+    max-height: 280px;
+    overflow: auto;
+    padding: 0.75rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+@media (max-width: 900px) {
+    .audit-list {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .audit-view {
+        border-radius: 12px;
+    }
+
+    .audit-header,
+    .audit-context,
+    .audit-summary {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .audit-context {
+        width: auto;
+    }
+
+    .reload-action {
+        width: 100%;
+    }
+
+    .audit-list {
+        padding: 0.85rem;
+    }
+
+    .audit-summary time {
+        white-space: normal;
+    }
+}

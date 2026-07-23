@@ -1,0 +1,130 @@
+@namespace AgentGovernanceDemo.Components.Navigation
+
+<div class="app-tab-bar" role="tablist" aria-label="@AriaLabel">
+    <button @ref="_demoTab"
+            id="@($"{IdPrefix}-demo-tab")"
+            class="app-tab"
+            type="button"
+            role="tab"
+            aria-selected="@AriaSelected(AppTab.Demo)"
+            aria-controls="@DemoPanelId"
+            tabindex="@TabIndex(AppTab.Demo)"
+            @onclick="() => SelectAsync(AppTab.Demo)"
+            @onkeydown="HandleDemoKeyDownAsync">
+        @DemoLabel
+    </button>
+
+    <button @ref="_auditTab"
+            id="@($"{IdPrefix}-audit-log-tab")"
+            class="app-tab"
+            type="button"
+            role="tab"
+            aria-selected="@AriaSelected(AppTab.AuditLog)"
+            aria-controls="@AuditPanelId"
+            tabindex="@TabIndex(AppTab.AuditLog)"
+            @onclick="() => SelectAsync(AppTab.AuditLog)"
+            @onkeydown="HandleAuditKeyDownAsync">
+        <span>@AuditLabel</span>
+        @if (AuditCount is not null)
+        {
+            <span class="audit-count" aria-label="@($"{AuditCount.Value} items")">
+                @AuditCount.Value
+            </span>
+        }
+    </button>
+</div>
+
+@code {
+    private ElementReference _demoTab;
+    private ElementReference _auditTab;
+
+    [Parameter]
+    public AppTab SelectedTab { get; set; }
+
+    [Parameter]
+    public EventCallback<AppTab> SelectedTabChanged { get; set; }
+
+    [Parameter]
+    public int? AuditCount { get; set; }
+
+    [Parameter]
+    public string AriaLabel { get; set; } = "Application views";
+
+    [Parameter]
+    public string DemoLabel { get; set; } = "Demo";
+
+    [Parameter]
+    public string AuditLabel { get; set; } = "Audit Log";
+
+    [Parameter]
+    public string IdPrefix { get; set; } = "app";
+
+    [Parameter]
+    public string DemoPanelId { get; set; } = "demo-tab-panel";
+
+    [Parameter]
+    public string AuditPanelId { get; set; } = "audit-log-tab-panel";
+
+    protected override void OnParametersSet()
+    {
+        if (!Enum.IsDefined(SelectedTab))
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(SelectedTab),
+                SelectedTab,
+                "The selected tab must be Demo or AuditLog.");
+        }
+
+        if (AuditCount < 0)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(AuditCount),
+                AuditCount,
+                "The audit count cannot be negative.");
+        }
+    }
+
+    private string AriaSelected(AppTab tab) => SelectedTab == tab ? "true" : "false";
+
+    private int TabIndex(AppTab tab) => SelectedTab == tab ? 0 : -1;
+
+    private async Task SelectAsync(AppTab tab)
+    {
+        if (tab != SelectedTab)
+        {
+            await SelectedTabChanged.InvokeAsync(tab);
+        }
+    }
+
+    private Task HandleDemoKeyDownAsync(KeyboardEventArgs args) =>
+        HandleKeyDownAsync(args, AppTab.Demo);
+
+    private Task HandleAuditKeyDownAsync(KeyboardEventArgs args) =>
+        HandleKeyDownAsync(args, AppTab.AuditLog);
+
+    private async Task HandleKeyDownAsync(KeyboardEventArgs args, AppTab currentTab)
+    {
+        var target = args.Key switch
+        {
+            "ArrowLeft" or "ArrowRight" => currentTab == AppTab.Demo
+                ? AppTab.AuditLog
+                : AppTab.Demo,
+            "Home" => AppTab.Demo,
+            "End" => AppTab.AuditLog,
+            _ => (AppTab?)null
+        };
+
+        if (target is null)
+        {
+            return;
+        }
+
+        await SelectAsync(target.Value);
+        await FocusAsync(target.Value);
+    }
+
+    private ValueTask FocusAsync(AppTab tab) =>
+        tab == AppTab.Demo
+            ? _demoTab.FocusAsync(preventScroll: true)
+            : _auditTab.FocusAsync(preventScroll: true);
+}

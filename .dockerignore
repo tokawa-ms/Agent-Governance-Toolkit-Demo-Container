@@ -1,0 +1,17 @@
+.git
+.github
+.azure
+.playwright-mcp
+artifacts
+TestResults
+coverage
+**/.vs
+**/bin
+**/obj
+**/*.user
+**/*.suo
+**/*.log
+infra
+scripts
+tests
+README*
