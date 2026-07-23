@@ -1,0 +1,27 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "eastasia"
+    },
+    "environmentName": {
+      "value": "demo"
+    },
+    "containerRegistryName": {
+      "value": "<globally-unique-acr-name>"
+    },
+    "auditContainerName": {
+      "value": "agt-audit"
+    },
+    "virtualNetworkAddressPrefix": {
+      "value": "10.20.0.0/23"
+    },
+    "containerAppsSubnetPrefix": {
+      "value": "10.20.0.0/27"
+    },
+    "privateEndpointSubnetPrefix": {
+      "value": "10.20.0.32/27"
+    }
+  }
+}

@@ -1,0 +1,493 @@
+﻿@page "/"
+@implements IAsyncDisposable
+@using AgentGovernance.Audit
+@using AgentGovernanceDemo.Audit
+@using AgentGovernanceDemo.Components.Audit
+@using AgentGovernanceDemo.Components.Demo
+@using AgentGovernanceDemo.Components.Navigation
+@using AgentGovernanceDemo.Configuration
+@using AgentGovernanceDemo.Governance
+@using AgentGovernanceDemo.Integration
+@using AgentGovernanceDemo.Presentation
+@using AgentGovernanceDemo.Telemetry
+@using Microsoft.Extensions.Options
+@inject DemoRunCoordinator RunCoordinator
+@inject DemoExecutionEventHub ExecutionEvents
+@inject DemoRunRateLimiter RunRateLimiter
+@inject PersistedAuditEventHub AuditEvents
+@inject BlobAuditReader AuditReader
+@inject StorageHealthMonitor StorageHealth
+@inject DemoTelemetry DemoTelemetry
+@inject TelemetryStatus TelemetryStatus
+@inject IOptions<StorageOptions> StorageOptions
+
+<PageTitle>Agent Governance Toolkit デモ</PageTitle>
+
+<section class="hero" aria-labelledby="page-heading">
+    <div>
+        <p class="section-label">AGENT GOVERNANCE TOOLKIT</p>
+        <h2 id="page-heading">ガバナンス判断を段階ごとに追跡</h2>
+        <p class="hero-copy">
+            Demo では固定シナリオと 4 段階の実行フローを左右で確認し、
+            Audit Log では Azure Blob Storage に永続化された監査証跡を確認できます。
+        </p>
+    </div>
+    <div class="service-statuses" aria-label="サービス状態">
+        <div class="service-status @StorageStateClass">
+            <span>監査ストレージ</span>
+            <strong>@StorageStateLabel</strong>
+        </div>
+        <div class="service-status @TelemetryStateClass">
+            <span>テレメトリ</span>
+            <strong>@TelemetryStateLabel</strong>
+        </div>
+    </div>
+</section>
+
+@if (_notice is not null)
+{
+    <div class="notice @(_noticeIsError ? "notice-error" : "notice-info")"
+         role="@(_noticeIsError ? "alert" : "status")">
+        @_notice
+    </div>
+}
+
+<section class="workspace" aria-label="ガバナンスデモ ワークスペース">
+    <AppTabBar @bind-SelectedTab="_selectedTab"
+               AuditCount="_auditRecords.Count"
+               AriaLabel="表示するワークスペース"
+               DemoPanelId="demo-tab-panel"
+               AuditPanelId="audit-log-tab-panel" />
+
+    <div id="demo-tab-panel"
+         class="tab-panel"
+         role="tabpanel"
+         aria-labelledby="app-demo-tab"
+         hidden="@(_selectedTab != AppTab.Demo)">
+        <div class="demo-workspace">
+            <article class="panel execution-panel" aria-labelledby="execution-heading">
+                <header class="panel-header">
+                    <div>
+                        <p class="section-label">SCENARIO</p>
+                        <h3 id="execution-heading">固定シナリオと実行概要</h3>
+                    </div>
+                    <span class="panel-status @RunStatusClass" aria-live="polite">@RunStatusLabel</span>
+                </header>
+
+                <div class="panel-body">
+                    <fieldset class="scenario-list" disabled="@_isRunning">
+                        <legend>実行するシナリオ</legend>
+                        @foreach (var scenario in RunCoordinator.Scenarios)
+                        {
+                            var inputId = $"scenario-{scenario.Id}";
+                            <label class="scenario-card @(_selectedScenarioId == scenario.Id ? "selected" : null)"
+                                   for="@inputId">
+                                <input id="@inputId"
+                                       type="radio"
+                                       name="scenario"
+                                       value="@scenario.Id"
+                                       checked="@(_selectedScenarioId == scenario.Id)"
+                                       @onchange="() => SelectScenario(scenario.Id)" />
+                                <span class="scenario-copy">
+                                    <span class="scenario-title-row">
+                                        <strong>@ScenarioTitle(scenario)</strong>
+                                        <span class="outcome-badge @(scenario.ExpectedOutcome == GovernanceExpectedOutcome.Allow ? "allow" : "deny")">
+                                            @(scenario.ExpectedOutcome == GovernanceExpectedOutcome.Allow ? "許可予定" : "拒否予定")
+                                        </span>
+                                    </span>
+                                    <span>@ScenarioDescription(scenario)</span>
+                                    <code>@scenario.ToolName</code>
+                                </span>
+                            </label>
+                        }
+                    </fieldset>
+
+                    <div class="run-actions">
+                        <button class="primary-action"
+                                type="button"
+                                disabled="@_isRunning"
+                                @onclick="RunSelectedAsync">
+                            @(_isRunning ? "実行中…" : "選択したシナリオを実行")
+                        </button>
+                        @if (_isRunning)
+                        {
+                            <button class="secondary-action" type="button" @onclick="CancelRun">
+                                キャンセル
+                            </button>
+                        }
+                    </div>
+
+                    <section class="run-summary" aria-labelledby="run-summary-heading">
+                        <div class="subheading-row">
+                            <h4 id="run-summary-heading">実行概要</h4>
+                            <span class="outcome-badge @RunSummaryBadgeClass">@RunStatusLabel</span>
+                        </div>
+                        <dl>
+                            <div>
+                                <dt>シナリオ</dt>
+                                <dd>@ScenarioTitle(SelectedScenario)</dd>
+                            </div>
+                            <div>
+                                <dt>判断</dt>
+                                <dd>@RunSummaryDecision</dd>
+                            </div>
+                            <div>
+                                <dt>結果</dt>
+                                <dd>@RunSummaryOutput</dd>
+                            </div>
+                        </dl>
+                    </section>
+                </div>
+            </article>
+
+            <ExecutionFlowView State="_executionFlow"
+                               RunStatus="@(_isRunning ? DemoRunStatus.Running : _currentRun?.Status)"
+                               RunDetail="@_notice" />
+        </div>
+    </div>
+
+    <div id="audit-log-tab-panel"
+         class="tab-panel"
+         role="tabpanel"
+         aria-labelledby="app-audit-log-tab"
+         hidden="@(_selectedTab != AppTab.AuditLog)">
+        <AuditLogView Records="_auditRecords"
+                      SessionId="_auditSessionId"
+                      ShortSessionId="@ShortSessionId"
+                      StorageHealth="@StorageHealth.Current"
+                      IsRestoring="_isRestoring"
+                      OnReload="RestoreAuditRecordsAsync" />
+    </div>
+</section>
+
+<footer class="page-footer">
+    <p>@TelemetryStatus.Message</p>
+    <p>接続文字列や資格情報は画面・テレメトリ・監査レコードへ出力しません。</p>
+</footer>
+
+@code {
+    private readonly string _auditSessionId = Guid.NewGuid().ToString("N");
+    private readonly string _subscriberId = Guid.NewGuid().ToString("N");
+    private readonly List<GovernanceDemoEvent> _timeline = [];
+    private readonly List<GovernanceAuditRecord> _auditRecords = [];
+    private IDisposable? _executionSubscription;
+    private IDisposable? _auditSubscription;
+    private CancellationTokenSource? _runCancellation;
+    private DemoRunState? _currentRun;
+    private ExecutionFlowState _executionFlow = ExecutionFlowState.Initial;
+    private AppTab _selectedTab = AppTab.Demo;
+    private string _selectedScenarioId = GovernanceScenarioCatalog.All[0].Id;
+    private string? _notice;
+    private bool _noticeIsError;
+    private bool _isRunning;
+    private bool _isRestoring;
+    private int _disposed;
+
+    private string ShortSessionId => $"{_auditSessionId[..12]}…";
+    private GovernanceScenario SelectedScenario =>
+        GovernanceScenarioCatalog.GetRequired(_selectedScenarioId);
+    private string RunStatusLabel => _isRunning
+        ? "実行中"
+        : _currentRun?.Status switch
+        {
+            DemoRunStatus.Allowed => "許可",
+            DemoRunStatus.Denied => "拒否",
+            DemoRunStatus.Failed => "失敗",
+            _ => "待機中"
+        };
+    private string RunStatusClass => _isRunning
+        ? "running"
+        : _currentRun?.Status switch
+        {
+            DemoRunStatus.Allowed => "allowed",
+            DemoRunStatus.Denied => "denied",
+            DemoRunStatus.Failed => "failed",
+            _ => "idle"
+        };
+    private string RunSummaryBadgeClass => _currentRun?.Status switch
+    {
+        DemoRunStatus.Allowed => "allow",
+        DemoRunStatus.Denied or DemoRunStatus.Failed => "deny",
+        _ => "pending"
+    };
+    private string RunSummaryDecision =>
+        _executionFlow.DecisionReason
+        ?? (_isRunning ? "ポリシー評価を待機中です。" : "まだ実行されていません。");
+    private string RunSummaryOutput =>
+        _executionFlow.Output
+        ?? (_currentRun?.Status == DemoRunStatus.Denied
+            ? "ガバナンスによりブロックされ、ツールは実行されませんでした。"
+            : _isRunning
+                ? "実行中です。"
+                : "まだ出力はありません。");
+    private string StorageStateClass => StorageHealth.Current.State switch
+    {
+        StorageHealthState.Healthy => "healthy",
+        StorageHealthState.Failed => "failed",
+        _ => "degraded"
+    };
+    private string StorageStateLabel => StorageHealth.Current.State switch
+    {
+        StorageHealthState.Healthy => "正常",
+        StorageHealthState.Failed => "失敗",
+        _ => "未確認"
+    };
+    private string TelemetryStateClass => TelemetryStatus.State switch
+    {
+        TelemetryState.Configured => "healthy",
+        TelemetryState.Degraded => "failed",
+        _ => "degraded"
+    };
+    private string TelemetryStateLabel => TelemetryStatus.State switch
+    {
+        TelemetryState.Configured => "有効",
+        TelemetryState.Degraded => "構成エラー",
+        _ => "無効"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        _executionSubscription = ExecutionEvents.Subscribe(_subscriberId, OnExecutionEvent);
+        _auditSubscription = AuditEvents.Subscribe(_auditSessionId, OnPersistedRecord);
+        StorageHealth.Changed += OnStorageHealthChanged;
+
+        foreach (var record in AuditEvents.GetRecent(
+                     _auditSessionId,
+                     StorageOptions.Value.RecentRecordLimit))
+        {
+            AddAuditRecord(record);
+        }
+
+        await RestoreAuditRecordsAsync();
+    }
+
+    private void SelectScenario(string scenarioId)
+    {
+        if (!_isRunning)
+        {
+            _selectedScenarioId = scenarioId;
+        }
+    }
+
+    private async Task RunSelectedAsync()
+    {
+        // Note 1 (EN): The UI button enters here, then delegates all four domain stages to DemoRunCoordinator.
+        // Note 1 (JA): UI ボタンはここから入り、ドメインの 4 段階すべてを DemoRunCoordinator へ委譲します。
+        if (_isRunning || Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
+        if (!RunRateLimiter.TryAcquire(_subscriberId, out var retryAfter))
+        {
+            _notice = $"実行回数の上限に達しました。約 {Math.Max(1, Math.Ceiling(retryAfter.TotalSeconds))} 秒後に再試行してください。";
+            _noticeIsError = true;
+            return;
+        }
+
+        _isRunning = true;
+        _currentRun = null;
+        _timeline.Clear();
+        _executionFlow = ExecutionFlowState.Initial;
+        _notice = null;
+        _noticeIsError = false;
+        _runCancellation?.Dispose();
+        _runCancellation = new CancellationTokenSource();
+
+        // Note 2 (EN): The context correlates Toolkit audit events with this browser's audit session.
+        // Note 2 (JA): context により、Toolkit の監査イベントをこのブラウザーの監査セッションへ関連付けます。
+        using var context = DemoRunContext.Begin(_auditSessionId, _subscriberId);
+        using var telemetry = DemoTelemetry.StartDemoRun();
+        try
+        {
+            // Note 3 (EN): RunAsync executes Request -> Governance Gate -> Tool Execution -> Result.
+            // Note 3 (JA): RunAsync が Request -> Governance Gate -> Tool Execution -> Result を順に実行します。
+            _currentRun = await RunCoordinator.RunAsync(
+                _selectedScenarioId,
+                _runCancellation.Token);
+
+            // Note 4 (EN): The final immutable run state reconciles the live timeline into the completed UI.
+            // Note 4 (JA): 最終的な不変 run state を使い、ライブ timeline を完成済み UI へ整合させます。
+            _executionFlow = ExecutionFlowState.FromEvents(_timeline, _currentRun);
+            telemetry.Complete(
+                _currentRun.Status == DemoRunStatus.Failed
+                    ? TelemetryOutcome.Failed
+                    : TelemetryOutcome.Succeeded);
+            _notice = _currentRun.Allowed
+                ? "ポリシーで許可され、固定ツールの実行が完了しました。"
+                : "ポリシーで拒否されました。ツールは実行されていません。";
+        }
+        catch (OperationCanceledException)
+        {
+            telemetry.Complete(TelemetryOutcome.Failed);
+            _notice = "実行をキャンセルしました。";
+            _executionFlow = ExecutionFlowState.Cancelled(
+                _timeline,
+                GetCurrentStage(),
+                "ユーザーが実行を停止しました。");
+        }
+        catch (Exception exception)
+        {
+            telemetry.Complete(TelemetryOutcome.Failed);
+            _notice = $"実行に失敗しました: {exception.GetBaseException().Message}";
+            _noticeIsError = true;
+            _executionFlow = ExecutionFlowState.Failed(
+                _timeline,
+                GetCurrentStage(),
+                exception.GetBaseException().Message);
+        }
+        finally
+        {
+            _isRunning = false;
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void CancelRun() => _runCancellation?.Cancel();
+
+    private async Task RestoreAuditRecordsAsync()
+    {
+        if (_isRestoring || Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
+        _isRestoring = true;
+        try
+        {
+            var records = await AuditReader.ReadRecentAsync(
+                _auditSessionId,
+                StorageOptions.Value.RecentRecordLimit);
+            foreach (var record in records)
+            {
+                AddAuditRecord(record);
+            }
+
+            if (records.Count > 0)
+            {
+                StorageHealth.MarkHealthy();
+            }
+            else
+            {
+                StorageHealth.MarkReadChecked();
+            }
+        }
+        catch (Exception)
+        {
+            StorageHealth.MarkFailed("認証または Blob 読み取りに失敗しました。");
+        }
+        finally
+        {
+            _isRestoring = false;
+        }
+    }
+
+    private void OnExecutionEvent(GovernanceDemoEvent governanceEvent)
+    {
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
+        _ = InvokeAsync(() =>
+        {
+            // Note 5 (EN): Each published stage event immediately refreshes the graphical execution flow.
+            // Note 5 (JA): 配信された各段階イベントによって、グラフィカルな実行フローを即時更新します。
+            _timeline.Add(governanceEvent);
+            _executionFlow = ExecutionFlowState.FromEvents(_timeline);
+            StateHasChanged();
+        });
+    }
+
+    private void OnPersistedRecord(GovernanceAuditRecord record)
+    {
+        if (Volatile.Read(ref _disposed) != 0)
+        {
+            return;
+        }
+
+        _ = InvokeAsync(() =>
+        {
+            AddAuditRecord(record);
+            StateHasChanged();
+        });
+    }
+
+    private void OnStorageHealthChanged(StorageHealthSnapshot snapshot)
+    {
+        if (Volatile.Read(ref _disposed) == 0)
+        {
+            _ = InvokeAsync(StateHasChanged);
+        }
+    }
+
+    private void AddAuditRecord(GovernanceAuditRecord record)
+    {
+        if (!string.Equals(record.SessionId, _auditSessionId, StringComparison.Ordinal)
+            || _auditRecords.Any(item => string.Equals(
+                item.EventId,
+                record.EventId,
+                StringComparison.Ordinal)))
+        {
+            return;
+        }
+
+        _auditRecords.Add(record);
+        var limit = StorageOptions.Value.RecentRecordLimit;
+        if (_auditRecords.Count > limit)
+        {
+            _auditRecords.RemoveRange(0, _auditRecords.Count - limit);
+        }
+    }
+
+    private ExecutionFlowStageKind GetCurrentStage()
+    {
+        var activeStage = _executionFlow.Stages.FirstOrDefault(
+            stage => stage.Status == ExecutionFlowStageStatus.Active);
+        if (activeStage is not null)
+        {
+            return activeStage.Kind;
+        }
+
+        var incompleteStage = _executionFlow.Stages.FirstOrDefault(
+            stage => stage.Status == ExecutionFlowStageStatus.Pending);
+        return incompleteStage?.Kind ?? ExecutionFlowStageKind.Result;
+    }
+
+    private static string ScenarioTitle(GovernanceScenario scenario) => scenario.Id switch
+    {
+        "weather-allowed" => "天気情報を取得",
+        "time-allowed" => "UTC 時刻を取得",
+        "location-allowed" => "デモ位置情報を取得",
+        "shell-explicitly-denied" => "シェル実行を試行",
+        "unknown-default-denied" => "未登録ツールを試行",
+        "prompt-injection-denied" => "プロンプトインジェクションを検出",
+        _ => scenario.Title
+    };
+
+    private static string ScenarioDescription(GovernanceScenario scenario) => scenario.Id switch
+    {
+        "weather-allowed" => "読み取り専用の固定天気データを返します。",
+        "time-allowed" => "固定された UTC 時刻データを返します。",
+        "location-allowed" => "固定されたデモ用位置情報を返します。",
+        "shell-explicitly-denied" => "明示的な拒否ルールを確認します。シェルは存在しません。",
+        "unknown-default-denied" => "Default deny により未登録ツールを拒否します。",
+        "prompt-injection-denied" => "敵対的な固定文字列を実行前に検出します。",
+        _ => scenario.Description
+    };
+
+    public ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0)
+        {
+            return ValueTask.CompletedTask;
+        }
+
+        StorageHealth.Changed -= OnStorageHealthChanged;
+        _executionSubscription?.Dispose();
+        _auditSubscription?.Dispose();
+        _runCancellation?.Cancel();
+        _runCancellation?.Dispose();
+        return ValueTask.CompletedTask;
+    }
+}
