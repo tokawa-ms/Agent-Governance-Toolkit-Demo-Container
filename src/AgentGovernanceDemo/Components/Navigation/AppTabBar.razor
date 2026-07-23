@@ -1,3 +1,6 @@
+@* EN: Implements an accessible two-tab selector with roving focus and keyboard navigation.
+    JA: ロービングフォーカスとキーボード操作に対応したアクセシブルな 2 タブ選択 UI を実装します。 *@
+
 @namespace AgentGovernanceDemo.Components.Navigation
 
 <div class="app-tab-bar" role="tablist" aria-label="@AriaLabel">
@@ -35,6 +38,8 @@
 </div>
 
 @code {
+    // EN: Element references are retained only to implement the WAI-ARIA tab keyboard-focus pattern.
+    // JA: WAI-ARIA タブのキーボードフォーカスパターンを実装するためだけに要素参照を保持します。
     private ElementReference _demoTab;
     private ElementReference _auditTab;
 
@@ -104,6 +109,8 @@
 
     private async Task HandleKeyDownAsync(KeyboardEventArgs args, AppTab currentTab)
     {
+        // EN: Arrow keys wrap between tabs, while Home and End jump to the first and last tab.
+        // JA: 矢印キーはタブ間を循環し、Home と End は先頭および末尾のタブへ移動します。
         var target = args.Key switch
         {
             "ArrowLeft" or "ArrowRight" => currentTab == AppTab.Demo

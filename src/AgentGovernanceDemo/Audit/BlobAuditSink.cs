@@ -1,9 +1,20 @@
+// EN: Serializes sanitized governance events as newline-delimited JSON and appends them atomically to Blob Storage.
+// JA: サニタイズ済みガバナンスイベントを改行区切り JSON に変換し、Blob Storage へ排他的に追記します。
+
 using System.Text;
 using System.Text.Json;
 using AgentGovernance.Audit;
 
 namespace AgentGovernanceDemo.Audit;
 
+/// <summary>
+/// EN: Persists sanitized governance events as append-only JSONL audit records.<br/>
+/// JA: サニタイズ済みガバナンスイベントを追記専用 JSONL 監査レコードとして永続化します。
+/// </summary>
+/// <remarks>
+/// EN: A record is published to in-memory subscribers only after the blob append succeeds.<br/>
+/// JA: Blob への追記成功後に限り、レコードをメモリ内購読者へ通知します。
+/// </remarks>
 public sealed class BlobAuditSink : IAsyncDisposable
 {
     public const string ContentType = "application/x-ndjson";
@@ -25,6 +36,10 @@ public sealed class BlobAuditSink : IAsyncDisposable
         _eventHub = eventHub ?? throw new ArgumentNullException(nameof(eventHub));
     }
 
+    /// <summary>
+    /// EN: Sanitizes, serializes, appends, and publishes one governance event.<br/>
+    /// JA: 1 件のガバナンスイベントをサニタイズ、シリアライズ、追記、通知します。
+    /// </summary>
     public async ValueTask<GovernanceAuditRecord> PersistAsync(
         GovernanceEvent governanceEvent,
         CancellationToken cancellationToken = default)
@@ -91,6 +106,10 @@ public sealed class BlobAuditSink : IAsyncDisposable
         return ValueTask.CompletedTask;
     }
 
+    /// <summary>
+    /// EN: Produces the UTC daily append-blob name for a timestamp.<br/>
+    /// JA: タイムスタンプから UTC 日単位の Append Blob 名を生成します。
+    /// </summary>
     public static string GetBlobName(DateTimeOffset timestamp) =>
         $"governance-audit-{timestamp.UtcDateTime:yyyyMMdd}.jsonl";
 }

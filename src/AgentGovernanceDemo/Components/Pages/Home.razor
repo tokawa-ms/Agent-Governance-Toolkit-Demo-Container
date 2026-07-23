@@ -1,4 +1,7 @@
-﻿@page "/"
+﻿@* EN: Coordinates the primary demo UI, live execution timeline, telemetry scopes, and persisted audit-log view.
+    JA: メインのデモ UI、ライブ実行タイムライン、テレメトリスコープ、永続化監査ログ表示を調整します。 *@
+
+@page "/"
 @implements IAsyncDisposable
 @using AgentGovernance.Audit
 @using AgentGovernanceDemo.Audit
@@ -166,6 +169,8 @@
 </footer>
 
 @code {
+    // EN: Browser-scoped identifiers correlate live events and durable audit records without exposing credentials.
+    // JA: ブラウザー単位の ID により、資格情報を公開せずライブイベントと永続監査レコードを相関付けます。
     private readonly string _auditSessionId = Guid.NewGuid().ToString("N");
     private readonly string _subscriberId = Guid.NewGuid().ToString("N");
     private readonly List<GovernanceDemoEvent> _timeline = [];
@@ -247,6 +252,8 @@
 
     protected override async Task OnInitializedAsync()
     {
+        // EN: Subscribe before restoring records so no live event is lost during asynchronous initialization.
+        // JA: 非同期初期化中のライブイベントを失わないよう、レコード復元より先に購読します。
         _executionSubscription = ExecutionEvents.Subscribe(_subscriberId, OnExecutionEvent);
         _auditSubscription = AuditEvents.Subscribe(_auditSessionId, OnPersistedRecord);
         StorageHealth.Changed += OnStorageHealthChanged;

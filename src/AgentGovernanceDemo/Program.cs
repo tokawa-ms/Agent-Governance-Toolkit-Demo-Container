@@ -1,3 +1,6 @@
+// EN: Composes the web host, validated options, governance services, audit pipeline, security middleware, and Blazor endpoints.
+// JA: Web ホスト、検証済み設定、ガバナンスサービス、監査パイプライン、セキュリティミドルウェア、Blazor エンドポイントを構成します。
+
 using AgentGovernanceDemo.Audit;
 using AgentGovernanceDemo.Components;
 using AgentGovernanceDemo.Configuration;
@@ -11,6 +14,8 @@ using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// EN: Register presentation, configuration, governance, storage, and observability dependencies before the host is built.
+// JA: ホストをビルドする前に、表示、構成、ガバナンス、ストレージ、可観測性の依存関係を登録します。
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddOptions<DemoOptions>()
@@ -86,6 +91,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
+// EN: Production-only exception handling and HSTS avoid leaking diagnostics while enforcing HTTPS on subsequent requests.
+// JA: 本番専用の例外処理と HSTS により、診断情報の漏えいを防ぎつつ後続要求で HTTPS を強制します。
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
@@ -94,6 +101,8 @@ if (!app.Environment.IsDevelopment())
 
 app.UseForwardedHeaders();
 app.UseHttpsRedirection();
+// EN: Add defense-in-depth response headers before serving static files or interactive components.
+// JA: 静的ファイルや対話型コンポーネントを提供する前に、多層防御のレスポンスヘッダーを追加します。
 app.Use(async (context, next) =>
 {
     context.Response.Headers["X-Content-Type-Options"] = "nosniff";

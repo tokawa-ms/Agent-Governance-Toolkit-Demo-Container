@@ -1,3 +1,6 @@
+@* EN: Visualizes the governed request as four ordered stages and explains policy decisions and outputs.
+    JA: ガバナンス対象リクエストを 4 つの順序付き段階として可視化し、ポリシー判断と出力を説明します。 *@
+
 @using AgentGovernanceDemo.Governance
 @using AgentGovernanceDemo.Presentation
 
@@ -95,6 +98,8 @@
 </section>
 
 @code {
+    // EN: The component receives a fully reconciled presentation model and contains no governance decisions itself.
+    // JA: このコンポーネントは統合済み表示モデルを受け取り、自身ではガバナンス判断を行いません。
     [Parameter, EditorRequired]
     public ExecutionFlowState State { get; set; } = ExecutionFlowState.Initial;
 

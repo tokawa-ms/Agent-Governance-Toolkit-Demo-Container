@@ -1,8 +1,15 @@
+// EN: Verifies projection of live and terminal domain events into the four-stage presentation model.
+// JA: ライブおよび終端ドメインイベントから 4 段階表示モデルへの変換を検証します。
+
 using AgentGovernanceDemo.Governance;
 using AgentGovernanceDemo.Presentation;
 
 namespace AgentGovernanceDemo.Tests;
 
+/// <summary>
+/// EN: Tests stage activation, denial, failure, cancellation, and event reconciliation rules.<br/>
+/// JA: 段階の有効化、拒否、失敗、キャンセル、イベント統合ルールをテストします。
+/// </summary>
 public sealed class ExecutionFlowStateTests
 {
     [Fact]

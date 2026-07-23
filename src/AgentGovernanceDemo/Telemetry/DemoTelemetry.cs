@@ -1,14 +1,25 @@
+// EN: Defines OpenTelemetry activities and metrics for runs, policy evaluations, and audit appends.
+// JA: 実行、ポリシー評価、監査追記向けの OpenTelemetry アクティビティとメトリックを定義します。
+
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
 namespace AgentGovernanceDemo.Telemetry;
 
+/// <summary>
+/// EN: Identifies success or failure for general telemetry operations.<br/>
+/// JA: 一般的なテレメトリ操作の成功または失敗を識別します。
+/// </summary>
 public enum TelemetryOutcome
 {
     Succeeded,
     Failed
 }
 
+/// <summary>
+/// EN: Identifies the observable outcome of a governance policy evaluation.<br/>
+/// JA: ガバナンスポリシー評価で観測された結果を識別します。
+/// </summary>
 public enum PolicyEvaluationOutcome
 {
     Allowed,
@@ -16,6 +27,10 @@ public enum PolicyEvaluationOutcome
     Failed
 }
 
+/// <summary>
+/// EN: Creates disposable timing scopes that emit correlated traces and metrics.<br/>
+/// JA: 相関付けされたトレースとメトリックを出力する破棄可能な計測スコープを生成します。
+/// </summary>
 public sealed class DemoTelemetry
 {
     public const string ActivitySourceName = "AgentGovernanceDemo";
@@ -47,6 +62,10 @@ public sealed class DemoTelemetry
     public BlobAppendTelemetryScope StartBlobAppend() =>
         new(ActivitySource.StartActivity("audit.blob.append", ActivityKind.Client));
 
+    /// <summary>
+    /// EN: Measures one end-to-end demo run.<br/>
+    /// JA: 1 回のエンドツーエンドデモ実行を計測します。
+    /// </summary>
     public sealed class DemoRunTelemetryScope : TelemetryScope
     {
         internal DemoRunTelemetryScope(Activity? activity)
@@ -69,6 +88,10 @@ public sealed class DemoTelemetry
         }
     }
 
+    /// <summary>
+    /// EN: Measures one policy evaluation and records allow, deny, or failure.<br/>
+    /// JA: 1 回のポリシー評価を計測し、許可、拒否、失敗を記録します。
+    /// </summary>
     public sealed class PolicyEvaluationTelemetryScope : TelemetryScope
     {
         internal PolicyEvaluationTelemetryScope(Activity? activity)
@@ -97,6 +120,10 @@ public sealed class DemoTelemetry
         }
     }
 
+    /// <summary>
+    /// EN: Measures one audit append operation against Blob Storage.<br/>
+    /// JA: Blob Storage に対する 1 回の監査追記操作を計測します。
+    /// </summary>
     public sealed class BlobAppendTelemetryScope : TelemetryScope
     {
         internal BlobAppendTelemetryScope(Activity? activity)
@@ -119,6 +146,10 @@ public sealed class DemoTelemetry
         }
     }
 
+    /// <summary>
+    /// EN: Provides idempotent completion and elapsed-time tracking for telemetry operations.<br/>
+    /// JA: テレメトリ操作向けに、重複しない完了処理と経過時間計測を提供します。
+    /// </summary>
     public abstract class TelemetryScope : IDisposable
     {
         private readonly Activity? _activity;

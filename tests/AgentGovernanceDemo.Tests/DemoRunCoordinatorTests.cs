@@ -1,7 +1,14 @@
+// EN: Verifies allow and deny orchestration, no-execution guarantees, and monotonic event sequencing.
+// JA: 許可・拒否のオーケストレーション、未実行保証、イベント連番の単調増加を検証します。
+
 using AgentGovernanceDemo.Governance;
 
 namespace AgentGovernanceDemo.Tests;
 
+/// <summary>
+/// EN: Tests the security-critical stage ordering implemented by <see cref="DemoRunCoordinator"/>.<br/>
+/// JA: <see cref="DemoRunCoordinator"/> が実装するセキュリティ上重要な段階順序をテストします。
+/// </summary>
 public sealed class DemoRunCoordinatorTests
 {
     [Theory]
@@ -59,6 +66,10 @@ public sealed class DemoRunCoordinatorTests
         Assert.Equal(sink.Events.Count, sink.Events.Select(e => e.Sequence).Distinct().Count());
     }
 
+    /// <summary>
+    /// EN: Counts tool invocations to prove denied scenarios never cross the execution boundary.<br/>
+    /// JA: ツール呼び出し回数を数え、拒否シナリオが実行境界を越えないことを証明します。
+    /// </summary>
     private sealed class RecordingExecutor : IDemoToolExecutor
     {
         public int ExecutionCount { get; private set; }
@@ -73,6 +84,10 @@ public sealed class DemoRunCoordinatorTests
         }
     }
 
+    /// <summary>
+    /// EN: Collects live events for ordering and uniqueness assertions.<br/>
+    /// JA: 順序と一意性のアサーション向けにライブイベントを収集します。
+    /// </summary>
     private sealed class RecordingEventSink : IGovernanceDemoEventSink
     {
         public List<GovernanceDemoEvent> Events { get; } = [];

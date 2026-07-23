@@ -1,9 +1,16 @@
+// EN: Orchestrates the visible request, governance gate, tool execution, and result stages.
+// JA: 画面に表示するリクエスト、ガバナンスゲート、ツール実行、結果の各段階を統括します。
+
 namespace AgentGovernanceDemo.Governance;
 
 // Note 1 (EN): This coordinator is the best starting point for a source-code walkthrough.
 // Note 1 (JA): このコーディネーターが、ソースコードを順番に説明する際の起点です。
 // Note 1 (EN): It owns the same four stages displayed by the UI and keeps policy evaluation before execution.
 // Note 1 (JA): UI と同じ 4 段階を管理し、必ずポリシー評価をツール実行より前に配置します。
+/// <summary>
+/// EN: Coordinates one governed tool-call run and guarantees policy evaluation precedes execution.<br/>
+/// JA: 1 回のガバナンス対象ツール呼び出しを調整し、ポリシー評価が実行より先に行われることを保証します。
+/// </summary>
 public sealed class DemoRunCoordinator
 {
     private const string AgentId = "did:mesh:governance-demo-blazor-ui";
@@ -24,11 +31,19 @@ public sealed class DemoRunCoordinator
 
     public IReadOnlyList<GovernanceScenario> Scenarios => GovernanceScenarioCatalog.All;
 
+    /// <summary>
+    /// EN: Runs a catalog scenario identified by its stable ID.<br/>
+    /// JA: 安定した ID で識別されるカタログシナリオを実行します。
+    /// </summary>
     public Task<DemoRunState> RunAsync(
         string scenarioId,
         CancellationToken cancellationToken = default) =>
         RunAsync(GovernanceScenarioCatalog.GetRequired(scenarioId), cancellationToken);
 
+    /// <summary>
+    /// EN: Runs all four stages for the supplied immutable scenario.<br/>
+    /// JA: 指定された不変シナリオについて 4 段階すべてを実行します。
+    /// </summary>
     public async Task<DemoRunState> RunAsync(
         GovernanceScenario scenario,
         CancellationToken cancellationToken = default)

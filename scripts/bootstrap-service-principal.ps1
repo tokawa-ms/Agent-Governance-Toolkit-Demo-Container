@@ -94,28 +94,35 @@ $existingCredential = Invoke-AzJson -Arguments @(
 
 if (-not $existingCredential) {
     $credentialJson = $federatedCredential | ConvertTo-Json -Compress
-    & az ad app federated-credential create `
-        --id $deploymentApplication.appId `
-        --parameters $credentialJson `
-        --only-show-errors `
-        --output none
-    if ($LASTEXITCODE -ne 0) {
-        throw 'Unable to create the GitHub OIDC federated credential.'
+    $credentialFile = [System.IO.Path]::GetTempFileName()
+    try {
+        [System.IO.File]::WriteAllText(
+            $credentialFile,
+            $credentialJson,
+            [System.Text.UTF8Encoding]::new($false)
+        )
+        & az ad app federated-credential create `
+            --id $deploymentApplication.appId `
+            --parameters "@$credentialFile" `
+            --only-show-errors `
+            --output none
+        if ($LASTEXITCODE -ne 0) {
+            throw 'Unable to create the GitHub OIDC federated credential.'
+        }
+    }
+    finally {
+        Remove-Item -LiteralPath $credentialFile -Force -ErrorAction SilentlyContinue
     }
 }
 
 foreach ($role in @('Contributor', 'Role Based Access Control Administrator')) {
-    $assignmentCount = & az role assignment list `
-        --assignee-object-id $deploymentServicePrincipal.id `
-        --scope $scope `
-        --role $role `
-        --query 'length(@)' `
-        --output tsv `
-        --only-show-errors
-    if ($LASTEXITCODE -ne 0) {
-        throw "Unable to inspect the '$role' role assignment."
-    }
-    if ([int] $assignmentCount -eq 0) {
+    $assignments = Invoke-AzJson -Arguments @(
+        'role', 'assignment', 'list',
+        '--assignee-object-id', $deploymentServicePrincipal.id,
+        '--scope', $scope,
+        '--role', $role
+    )
+    if (@($assignments).Count -eq 0) {
         & az role assignment create `
             --assignee-object-id $deploymentServicePrincipal.id `
             --assignee-principal-type ServicePrincipal `

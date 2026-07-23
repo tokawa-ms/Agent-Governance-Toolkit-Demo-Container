@@ -1,3 +1,6 @@
+// EN: Bridges synchronous toolkit audit callbacks to resilient asynchronous Blob persistence.
+// JA: Toolkit の同期監査コールバックを、回復性のある非同期 Blob 永続化へ橋渡しします。
+
 using System.Threading.Channels;
 using AgentGovernance;
 using AgentGovernance.Audit;
@@ -7,6 +10,14 @@ using AgentGovernanceDemo.Telemetry;
 
 namespace AgentGovernanceDemo.Integration;
 
+/// <summary>
+/// EN: Queues, correlates, sanitizes, and persists governance events in the background.<br/>
+/// JA: ガバナンスイベントをバックグラウンドでキュー化、相関付け、サニタイズ、永続化します。
+/// </summary>
+/// <remarks>
+/// EN: The bounded channel separates event production from storage latency and prevents unbounded memory growth.<br/>
+/// JA: 有界チャネルによりイベント生成とストレージ遅延を分離し、無制限なメモリ増加を防ぎます。
+/// </remarks>
 public sealed class GovernanceAuditPersistenceWorker : BackgroundService
 {
     private const int QueueCapacity = 1_024;

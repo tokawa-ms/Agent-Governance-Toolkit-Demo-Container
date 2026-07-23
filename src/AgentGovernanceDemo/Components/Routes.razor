@@ -1,4 +1,7 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
+﻿@* EN: Resolves application routes, applies the default layout, and moves keyboard focus after navigation.
+    JA: アプリケーションルートを解決し、既定レイアウトを適用して、画面遷移後にキーボードフォーカスを移動します。 *@
+
+<Router AppAssembly="typeof(Program).Assembly">
     <Found Context="routeData">
         <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
         <FocusOnNavigate RouteData="routeData" Selector="h1" />

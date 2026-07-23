@@ -1,7 +1,14 @@
+// EN: Projects domain run events into the four-stage immutable view model rendered by the Blazor UI.
+// JA: ドメイン実行イベントを Blazor UI が描画する 4 段階の不変ビューモデルへ変換します。
+
 using AgentGovernanceDemo.Governance;
 
 namespace AgentGovernanceDemo.Presentation;
 
+/// <summary>
+/// EN: Identifies one of the four customer-facing execution stages.<br/>
+/// JA: お客様向けに表示する 4 つの実行段階の 1 つを識別します。
+/// </summary>
 public enum ExecutionFlowStageKind
 {
     Request,
@@ -10,6 +17,10 @@ public enum ExecutionFlowStageKind
     Result
 }
 
+/// <summary>
+/// EN: Identifies the visual state of an execution-flow stage.<br/>
+/// JA: 実行フロー段階の表示状態を識別します。
+/// </summary>
 public enum ExecutionFlowStageStatus
 {
     Pending,
@@ -20,12 +31,20 @@ public enum ExecutionFlowStageStatus
     Failed
 }
 
+/// <summary>
+/// EN: Represents one immutable card in the execution-flow visualization.<br/>
+/// JA: 実行フロー可視化内の 1 枚の不変カードを表します。
+/// </summary>
 public sealed record ExecutionFlowStage(
     ExecutionFlowStageKind Kind,
     string Title,
     ExecutionFlowStageStatus Status,
     string? Message);
 
+/// <summary>
+/// EN: Reconciles live events and final run results into a consistent four-stage UI state.<br/>
+/// JA: ライブイベントと最終実行結果を、一貫した 4 段階の UI 状態へ統合します。
+/// </summary>
 public sealed class ExecutionFlowState
 {
     // Note 1 (EN): StageOrder is the presentation contract shared with the four-step customer narrative.
@@ -305,6 +324,10 @@ public sealed class ExecutionFlowState
             _ => throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unknown execution flow stage.")
         };
 
+    /// <summary>
+    /// EN: Describes an explicit failure or cancellation point used to terminate the visual flow.<br/>
+    /// JA: 表示フローを終了させる明示的な失敗またはキャンセル地点を表します。
+    /// </summary>
     private sealed record FlowTermination(
         ExecutionFlowStageKind Stage,
         string Message,

@@ -1,3 +1,6 @@
+// EN: Configures the Agent Governance Toolkit kernel and exposes the single pre-execution policy gate.
+// JA: Agent Governance Toolkit カーネルを構成し、実行前の単一ポリシーゲートを公開します。
+
 using AgentGovernance;
 using AgentGovernance.Integration;
 using AgentGovernance.Policy;
@@ -6,6 +9,10 @@ namespace AgentGovernanceDemo.Governance;
 
 // Note 1 (EN): This service isolates Agent Governance Toolkit configuration from UI orchestration.
 // Note 1 (JA): このサービスは Agent Governance Toolkit の設定を UI オーケストレーションから分離します。
+/// <summary>
+/// EN: Owns the configured governance kernel and evaluates every requested demo tool call.<br/>
+/// JA: 構成済みガバナンスカーネルを所有し、要求されたすべてのデモツール呼び出しを評価します。
+/// </summary>
 public sealed class GovernanceDemoService : IDisposable
 {
     // Note 2 (EN): The policy is embedded so every demo instance evaluates the same reviewable rules.
@@ -65,6 +72,10 @@ public sealed class GovernanceDemoService : IDisposable
 
     public GovernanceKernel Kernel { get; }
 
+    /// <summary>
+    /// EN: Evaluates a tool request against the configured fail-closed governance policy.<br/>
+    /// JA: 構成済みの fail-closed ガバナンスポリシーに対してツール要求を評価します。
+    /// </summary>
     public ToolCallResult Evaluate(
         string agentId,
         string toolName,
