@@ -1,3 +1,6 @@
+// EN: Removes credentials and personal identifiers before governance events enter durable audit storage.
+// JA: ガバナンスイベントを永続監査ストレージへ保存する前に資格情報と個人識別子を除去します。
+
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
@@ -5,15 +8,31 @@ using AgentGovernance.Audit;
 
 namespace AgentGovernanceDemo.Audit;
 
+/// <summary>
+/// EN: Converts toolkit governance events into safe, persistable audit records.<br/>
+/// JA: Toolkit のガバナンスイベントを安全に永続化できる監査レコードへ変換します。
+/// </summary>
 public interface IAuditSanitizer
 {
     GovernanceAuditRecord Sanitize(GovernanceEvent governanceEvent);
 }
 
+/// <summary>
+/// EN: Recursively redacts sensitive keys and credential-shaped text from governance events.<br/>
+/// JA: ガバナンスイベントから機密キーと資格情報形式の文字列を再帰的にマスクします。
+/// </summary>
+/// <remarks>
+/// EN: Sanitization fails closed when input cannot be represented safely as JSON.<br/>
+/// JA: 入力を安全な JSON として表現できない場合は fail-closed で失敗します。
+/// </remarks>
 public sealed partial class AuditSanitizer : IAuditSanitizer
 {
     public const string RedactedValue = "[REDACTED]";
 
+    /// <summary>
+    /// EN: Sanitizes one governance event without mutating the source object.<br/>
+    /// JA: 元のオブジェクトを変更せずに 1 件のガバナンスイベントをサニタイズします。
+    /// </summary>
     public GovernanceAuditRecord Sanitize(GovernanceEvent governanceEvent)
     {
         ArgumentNullException.ThrowIfNull(governanceEvent);

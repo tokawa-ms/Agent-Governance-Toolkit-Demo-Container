@@ -1,3 +1,6 @@
+// EN: Verifies atomic JSONL appends, concurrency serialization, and publish-after-persist ordering.
+// JA: JSONL の原子的追記、同時実行の直列化、永続化後通知の順序を検証します。
+
 using System.Collections.Concurrent;
 using System.Text;
 using System.Text.Json;
@@ -6,6 +9,10 @@ using AgentGovernanceDemo.Audit;
 
 namespace AgentGovernanceDemo.Tests;
 
+/// <summary>
+/// EN: Tests durability and ordering guarantees provided by <see cref="BlobAuditSink"/>.<br/>
+/// JA: <see cref="BlobAuditSink"/> が提供する永続性と順序保証をテストします。
+/// </summary>
 public sealed class BlobAuditSinkTests
 {
     [Fact]
@@ -78,6 +85,10 @@ public sealed class BlobAuditSinkTests
         Data = new Dictionary<string, object> { ["index"] = index }
     };
 
+    /// <summary>
+    /// EN: Records append calls, simulates failures, and measures append concurrency.<br/>
+    /// JA: 追記呼び出しを記録し、失敗を模擬して、追記の同時実行数を計測します。
+    /// </summary>
     private sealed class FakeAuditBlobClient : IAuditBlobClient
     {
         private int _activeAppends;
@@ -117,8 +128,16 @@ public sealed class BlobAuditSinkTests
             ValueTask.FromResult<Stream?>(null);
     }
 
+    /// <summary>
+    /// EN: Captures one append invocation for assertions.<br/>
+    /// JA: アサーション向けに 1 回の追記呼び出しを記録します。
+    /// </summary>
     private sealed record AppendCall(string BlobName, string ContentType, string Text);
 
+    /// <summary>
+    /// EN: Provides an atomic maximum operation for the concurrency probe.<br/>
+    /// JA: 同時実行数の計測向けにアトミックな最大値更新を提供します。
+    /// </summary>
     private static class InterlockedExtensions
     {
         public static void Max(ref int location, int value)

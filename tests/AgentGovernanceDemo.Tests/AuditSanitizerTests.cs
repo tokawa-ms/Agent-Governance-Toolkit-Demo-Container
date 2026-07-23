@@ -1,8 +1,15 @@
+// EN: Verifies that audit sanitization redacts sensitive content and fails closed for unsupported values.
+// JA: 監査サニタイズが機密情報をマスクし、未対応値に対して fail-closed で失敗することを検証します。
+
 using AgentGovernance.Audit;
 using AgentGovernanceDemo.Audit;
 
 namespace AgentGovernanceDemo.Tests;
 
+/// <summary>
+/// EN: Tests the security boundaries enforced by <see cref="AuditSanitizer"/>.<br/>
+/// JA: <see cref="AuditSanitizer"/> が強制するセキュリティ境界をテストします。
+/// </summary>
 public sealed class AuditSanitizerTests
 {
     [Fact]

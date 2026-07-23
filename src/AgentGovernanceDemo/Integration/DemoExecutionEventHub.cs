@@ -1,9 +1,16 @@
+// EN: Routes live governance stage events to the browser session that initiated a run.
+// JA: ライブのガバナンス段階イベントを、実行を開始したブラウザーセッションへ配信します。
+
 using AgentGovernanceDemo.Configuration;
 using AgentGovernanceDemo.Governance;
 using Microsoft.Extensions.Options;
 
 namespace AgentGovernanceDemo.Integration;
 
+/// <summary>
+/// EN: Dispatches execution events to session-scoped UI subscribers and controls demo pacing.<br/>
+/// JA: 実行イベントをセッション単位の UI 購読者へ配信し、デモの進行速度を制御します。
+/// </summary>
 public sealed class DemoExecutionEventHub(IOptions<DemoOptions> options) : IGovernanceDemoEventSink
 {
     private readonly object _gate = new();
@@ -54,6 +61,10 @@ public sealed class DemoExecutionEventHub(IOptions<DemoOptions> options) : IGove
         }
     }
 
+    /// <summary>
+    /// EN: Removes one UI subscriber when its component scope is disposed.<br/>
+    /// JA: コンポーネントスコープの破棄時に 1 件の UI 購読者を削除します。
+    /// </summary>
     private sealed class Subscription(DemoExecutionEventHub owner, string subscriberId) : IDisposable
     {
         private DemoExecutionEventHub? _owner = owner;

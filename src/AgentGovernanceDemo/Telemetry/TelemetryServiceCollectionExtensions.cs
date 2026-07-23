@@ -1,3 +1,6 @@
+// EN: Registers demo tracing and metrics, exporting them to Azure Monitor only when configuration is valid.
+// JA: デモのトレースとメトリックを登録し、構成が有効な場合だけ Azure Monitor へ出力します。
+
 using System.Reflection;
 using AgentGovernance.Telemetry;
 using Azure.Monitor.OpenTelemetry.AspNetCore;
@@ -10,10 +13,18 @@ using OpenTelemetry.Trace;
 
 namespace AgentGovernanceDemo.Telemetry;
 
+/// <summary>
+/// EN: Provides dependency-injection registration for OpenTelemetry and Azure Monitor export.<br/>
+/// JA: OpenTelemetry と Azure Monitor 出力の依存関係注入登録を提供します。
+/// </summary>
 public static class TelemetryServiceCollectionExtensions
 {
     public const string DefaultServiceName = "agent-governance-demo";
 
+    /// <summary>
+    /// EN: Adds telemetry services and conditionally enables Azure Monitor export.<br/>
+    /// JA: テレメトリサービスを追加し、条件を満たす場合に Azure Monitor 出力を有効化します。
+    /// </summary>
     public static IServiceCollection AddAgentGovernanceDemoTelemetry(
         this IServiceCollection services,
         IConfiguration configuration,

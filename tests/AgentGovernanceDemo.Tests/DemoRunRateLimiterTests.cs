@@ -1,9 +1,16 @@
+// EN: Verifies independent per-client limits and sliding-window recovery for demo executions.
+// JA: デモ実行について、クライアントごとの独立した制限とスライディングウィンドウ回復を検証します。
+
 using AgentGovernanceDemo.Configuration;
 using AgentGovernanceDemo.Integration;
 using Microsoft.Extensions.Options;
 
 namespace AgentGovernanceDemo.Tests;
 
+/// <summary>
+/// EN: Tests the deterministic overload of <see cref="DemoRunRateLimiter"/>.<br/>
+/// JA: <see cref="DemoRunRateLimiter"/> の決定論的オーバーロードをテストします。
+/// </summary>
 public sealed class DemoRunRateLimiterTests
 {
     [Fact]

@@ -1,8 +1,15 @@
+// EN: Verifies the checked-in policy's allowlist, explicit deny, default deny, and injection detection behavior.
+// JA: リポジトリ管理ポリシーの許可リスト、明示拒否、既定拒否、インジェクション検出動作を検証します。
+
 using AgentGovernance.Policy;
 using AgentGovernanceDemo.Governance;
 
 namespace AgentGovernanceDemo.Tests;
 
+/// <summary>
+/// EN: Tests the effective Agent Governance Toolkit policy configuration used by the demo.<br/>
+/// JA: デモで使用する Agent Governance Toolkit の有効なポリシー構成をテストします。
+/// </summary>
 public sealed class PolicyTests
 {
     [Theory]

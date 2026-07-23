@@ -1,8 +1,15 @@
+// EN: Restores recent session-specific audit records from the current daily JSONL blob.
+// JA: 当日の JSONL Blob からセッション単位の直近監査レコードを復元します。
+
 using System.Text;
 using System.Text.Json;
 
 namespace AgentGovernanceDemo.Audit;
 
+/// <summary>
+/// EN: Reads, validates, filters, and bounds persisted audit records for one demo session.<br/>
+/// JA: 1 つのデモセッションについて、永続化済み監査レコードを読み取り、検証、絞り込み、件数制限します。
+/// </summary>
 public sealed class BlobAuditReader
 {
     private readonly IAuditBlobClient _blobClient;
@@ -14,6 +21,10 @@ public sealed class BlobAuditReader
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
+    /// <summary>
+    /// EN: Reads the most recent matching records while preserving their original order.<br/>
+    /// JA: 元の順序を維持しながら、一致する直近レコードを読み取ります。
+    /// </summary>
     public async ValueTask<IReadOnlyList<GovernanceAuditRecord>> ReadRecentAsync(
         string sessionId,
         int maxCount,

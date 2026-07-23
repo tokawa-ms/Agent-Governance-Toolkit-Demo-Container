@@ -1,3 +1,6 @@
+@* EN: Renders sanitized, persisted audit records and storage health for the active browser audit session.
+    JA: 現在のブラウザー監査セッションについて、サニタイズ・永続化済み監査レコードとストレージ正常性を表示します。 *@
+
 @using System.Text.Json
 @using AgentGovernance.Audit
 @using AgentGovernanceDemo.Audit
@@ -78,6 +81,8 @@
 </article>
 
 @code {
+    // EN: Display serialization is intentionally indented and remains separate from the compact persistence contract.
+    // JA: 表示用シリアライズは読みやすく整形し、コンパクトな永続化契約とは分離しています。
     private static readonly JsonSerializerOptions DisplayJsonOptions = new()
     {
         WriteIndented = true
@@ -117,6 +122,8 @@
 
     private static bool IsDenied(GovernanceAuditRecord record)
     {
+        // EN: Strongly typed violation events are checked first; the JSON fallback supports toolkit event variations.
+        // JA: まず型付き違反イベントを判定し、JSON フォールバックで Toolkit イベントの差異を吸収します。
         if (record.Type is GovernanceEventType.PolicyViolation
             or GovernanceEventType.ToolCallBlocked
             or GovernanceEventType.TrustFailed)

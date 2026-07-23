@@ -1,5 +1,12 @@
+// EN: Defines and implements the side-effect-free tool boundary used after governance approval.
+// JA: ガバナンス承認後に使用する副作用のないツール境界と実装を定義します。
+
 namespace AgentGovernanceDemo.Governance;
 
+/// <summary>
+/// EN: Abstracts execution of the small allowlisted tool set used by the demo.<br/>
+/// JA: デモで使用する小規模な許可リスト済みツール群の実行を抽象化します。
+/// </summary>
 public interface IDemoToolExecutor
 {
     // Note 1 (EN): The interface keeps orchestration independent from the concrete safe demo tools.
@@ -14,6 +21,10 @@ public interface IDemoToolExecutor
 // Note 2 (JA): この executor は固定データだけを返し、外部システムを一切呼び出しません。
 // Note 2 (EN): It demonstrates governance flow without introducing real-world side effects.
 // Note 2 (JA): 実際の副作用を持ち込まず、ガバナンスの流れだけを安全に実演できます。
+/// <summary>
+/// EN: Executes only predefined in-memory demo tools and rejects every unknown tool.<br/>
+/// JA: 定義済みのメモリ内デモツールだけを実行し、すべての未登録ツールを拒否します。
+/// </summary>
 public sealed class DeterministicDemoToolExecutor : IDemoToolExecutor
 {
     public ValueTask<string> ExecuteAsync(
