@@ -30,7 +30,7 @@
         <span>@AuditLabel</span>
         @if (AuditCount is not null)
         {
-            <span class="audit-count" aria-label="@($"{AuditCount.Value} items")">
+            <span class="audit-count" aria-label="@AuditCountAriaLabel">
                 @AuditCount.Value
             </span>
         }
@@ -62,6 +62,9 @@
     public string AuditLabel { get; set; } = "Audit Log";
 
     [Parameter]
+    public string AuditCountFormat { get; set; } = "{0} items";
+
+    [Parameter]
     public string IdPrefix { get; set; } = "app";
 
     [Parameter]
@@ -90,6 +93,9 @@
     }
 
     private string AriaSelected(AppTab tab) => SelectedTab == tab ? "true" : "false";
+
+    private string AuditCountAriaLabel =>
+        string.Format(AuditCountFormat, AuditCount.GetValueOrDefault());
 
     private int TabIndex(AppTab tab) => SelectedTab == tab ? 0 : -1;
 

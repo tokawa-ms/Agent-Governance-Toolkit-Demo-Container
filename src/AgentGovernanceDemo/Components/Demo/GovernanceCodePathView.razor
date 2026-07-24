@@ -1,37 +1,39 @@
 @using AgentGovernanceDemo.Presentation
+@using AgentGovernanceDemo.Governance
+@inject UiLocalizer L
 
 <section class="code-path" aria-labelledby="code-path-heading">
     <div class="code-path-heading">
         <div>
             <p class="code-eyebrow">EXPLAINABLE GOVERNANCE</p>
-            <h4 id="code-path-heading">適用ゲートと C# コードパス</h4>
+            <h4 id="code-path-heading">@L["AppliedGatePath"]</h4>
         </div>
-        <span class="gate-badge">@State.GateLabel</span>
+        <span class="gate-badge">@GateLabel</span>
     </div>
 
-    <p class="code-summary" role="status">@State.Summary</p>
+    <p class="code-summary" role="status">@CodeSummary</p>
 
     <dl class="gate-facts">
         <div>
-            <dt>対象ツール</dt>
+            <dt>@L["TargetTool"]</dt>
             <dd><code>@State.ToolName</code></dd>
         </div>
         <div>
-            <dt>一致ルール</dt>
-            <dd>@State.RuleLabel</dd>
+            <dt>@L["MatchedRule"]</dt>
+            <dd>@RuleLabel</dd>
         </div>
     </dl>
 
     <div class="code-path-grid">
-        <ol class="path-points" aria-label="ガバナンスコードパスの状態">
+        <ol class="path-points" aria-label="@L["CodePathStatus"]">
             @foreach (var point in State.Points)
             {
                 <li class="point point-@StatusClass(point.Status)">
                     <span class="point-marker" aria-hidden="true">@StatusIcon(point.Status)</span>
                     <div>
-                        <strong>@point.Label</strong>
+                        <strong>@PointLabel(point.Id)</strong>
                         <span class="point-status">@StatusLabel(point.Status)</span>
-                        <p>@point.Description</p>
+                        <p>@PointDescription(point.Id)</p>
                     </div>
                 </li>
             }
@@ -42,10 +44,10 @@
             {
                 <article class="snippet">
                     <header>
-                        <strong>@snippet.Title</strong>
+                        <strong>@SnippetTitle(snippet.Title)</strong>
                         <span>@snippet.SourcePath</span>
                     </header>
-                    <pre aria-label="@($"{snippet.Title} の C# ソースコード抜粋")"><code>@foreach (var line in snippet.Lines)
+                    <pre aria-label="@L.Format("SourceExcerpt", SnippetTitle(snippet.Title))"><code>@foreach (var line in snippet.Lines)
 {
     var status = State.StatusFor(line.PointId);
 <span class="code-line code-@StatusClass(status)">@line.Text</span>
@@ -59,7 +61,7 @@
         <div class="policy-definition-heading">
             <div>
                 <p class="code-eyebrow">GOVERNANCE GATE DEFINITION</p>
-                <h4 id="policy-definition-heading">Governance Gate 定義ファイル</h4>
+                <h4 id="policy-definition-heading">@L["GateDefinition"]</h4>
             </div>
             <code>@State.PolicySourcePath</code>
         </div>
@@ -67,21 +69,21 @@
         <div class="policy-decision policy-decision-@StatusClass(State.PolicyDecisionStatus)"
              role="status">
             <strong>@PolicyDecisionLabel(State.PolicyDecisionStatus)</strong>
-            <span>@State.PolicyDecisionSummary</span>
+            <span>@PolicySummary</span>
         </div>
 
         <dl class="gate-facts">
             <div>
-                <dt>適用結果</dt>
+                <dt>@L["AppliedResult"]</dt>
                 <dd>@PolicyDecisionLabel(State.PolicyDecisionStatus)</dd>
             </div>
             <div>
-                <dt>合致条件</dt>
-                <dd>@State.MatchedCondition</dd>
+                <dt>@L["MatchedCondition"]</dt>
+                <dd>@MatchedCondition</dd>
             </div>
         </dl>
 
-        <pre class="policy-source" aria-label="Governance Gate の YAML 定義"><code>@foreach (var line in State.PolicyLines)
+        <pre class="policy-source" aria-label="@L["YamlDefinition"]"><code>@foreach (var line in State.PolicyLines)
 {
 <span class="policy-line code-@StatusClass(line.Status)"><span class="line-number" aria-hidden="true">@line.Number</span><span>@line.Text</span></span>
 }</code></pre>
@@ -95,16 +97,16 @@
     private static string StatusClass(GovernanceCodePointStatus status) =>
         status.ToString().ToLowerInvariant();
 
-    private static string StatusLabel(GovernanceCodePointStatus status) =>
+    private string StatusLabel(GovernanceCodePointStatus status) =>
         status switch
         {
-            GovernanceCodePointStatus.Pending => "待機",
-            GovernanceCodePointStatus.Active => "評価中",
-            GovernanceCodePointStatus.Allowed => "許可",
-            GovernanceCodePointStatus.Blocked => "拒否パス",
-            GovernanceCodePointStatus.NotTaken => "非通過",
-            GovernanceCodePointStatus.Failed => "失敗",
-            _ => "不明"
+            GovernanceCodePointStatus.Pending => L["Pending"],
+            GovernanceCodePointStatus.Active => L["Evaluating"],
+            GovernanceCodePointStatus.Allowed => L["Allowed"],
+            GovernanceCodePointStatus.Blocked => L["DeniedPath"],
+            GovernanceCodePointStatus.NotTaken => L["NotTaken"],
+            GovernanceCodePointStatus.Failed => L["Failed"],
+            _ => L["Unknown"]
         };
 
     private static string StatusIcon(GovernanceCodePointStatus status) =>
@@ -119,14 +121,79 @@
             _ => "?"
         };
 
-    private static string PolicyDecisionLabel(GovernanceCodePointStatus status) =>
+    private string PolicyDecisionLabel(GovernanceCodePointStatus status) =>
         status switch
         {
-            GovernanceCodePointStatus.Pending => "未評価",
-            GovernanceCodePointStatus.Active => "評価中",
-            GovernanceCodePointStatus.Allowed => "通過",
-            GovernanceCodePointStatus.Blocked => "通過不可",
-            GovernanceCodePointStatus.Failed => "評価失敗",
-            _ => "未評価"
+            GovernanceCodePointStatus.Pending => L["NotEvaluated"],
+            GovernanceCodePointStatus.Active => L["Evaluating"],
+            GovernanceCodePointStatus.Allowed => L["Passed"],
+            GovernanceCodePointStatus.Blocked => L["NotPassed"],
+            GovernanceCodePointStatus.Failed => L["EvaluationFailed"],
+            _ => L["NotEvaluated"]
         };
+
+    private string GateLabel => State.GateKind switch
+    {
+        GovernanceGateKind.AllowlistRule => L["AllowlistRule"],
+        GovernanceGateKind.ExplicitDenyRule => L["ExplicitDenyRule"],
+        GovernanceGateKind.DefaultDeny => "Default deny",
+        GovernanceGateKind.PromptInjectionDetection => L["PromptInjectionDetection"],
+        _ => L["UnknownGate"]
+    };
+
+    private string RuleLabel => State.MatchedRule
+        ?? (State.GateKind switch
+        {
+            GovernanceGateKind.DefaultDeny => "default_action: deny",
+            GovernanceGateKind.PromptInjectionDetection => L["BuiltInDetector"],
+            _ => L["AfterRun"]
+        });
+
+    private string MatchedCondition =>
+        State.PolicyDecisionStatus == GovernanceCodePointStatus.Pending
+            ? L["ConditionAfterRun"]
+            : State.MatchedCondition;
+
+    private string CodeSummary => State.PolicyDecisionStatus switch
+    {
+        GovernanceCodePointStatus.Allowed => L.Format("GateAllowedSummary", GateLabel, State.ToolName),
+        GovernanceCodePointStatus.Blocked => L.Format("GateDeniedSummary", GateLabel, State.ToolName),
+        GovernanceCodePointStatus.Active => L.Format("GateEvaluatingSummary", GateLabel, State.ToolName),
+        GovernanceCodePointStatus.Failed => L["GateEvaluationFailed"],
+        _ => L.Format("GatePendingSummary", State.ToolName, GateLabel)
+    };
+
+    private string PolicySummary => State.PolicyDecisionStatus switch
+    {
+        GovernanceCodePointStatus.Allowed => L.Format("PolicyAllowedSummary", State.ToolName),
+        GovernanceCodePointStatus.Blocked => L.Format("PolicyDeniedSummary", State.ToolName),
+        GovernanceCodePointStatus.Active => L.Format("PolicyEvaluatingSummary", State.ToolName),
+        GovernanceCodePointStatus.Failed => L["GateEvaluationFailed"],
+        _ => L.Format("PolicyPendingSummary", State.ToolName)
+    };
+
+    private string PointLabel(string id) => id switch
+    {
+        "coordinator-evaluate" => L["EvaluationRequest"],
+        "kernel-evaluate" => L["ToolkitGate"],
+        "deny-branch" => L["DenyBranch"],
+        "execution-skipped" => L["RecordSkipped"],
+        "early-return" => L["EarlyReturn"],
+        _ => id
+    };
+
+    private string PointDescription(string id) => id switch
+    {
+        "coordinator-evaluate" => L["EvaluationRequestDescription"],
+        "kernel-evaluate" => L["ToolkitGateDescription"],
+        "deny-branch" => L["DenyBranchDescription"],
+        "execution-skipped" => L["RecordSkippedDescription"],
+        "early-return" => L["EarlyReturnDescription"],
+        _ => string.Empty
+    };
+
+    private string SnippetTitle(string title) =>
+        title.StartsWith("1.", StringComparison.Ordinal)
+            ? L["GovernanceEvaluationSnippet"]
+            : L["DenyHandlingSnippet"];
 }

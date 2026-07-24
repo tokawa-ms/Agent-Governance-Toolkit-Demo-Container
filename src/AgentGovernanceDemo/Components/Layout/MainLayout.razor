@@ -2,6 +2,9 @@
     JA: 共通のアプリ外枠、環境表示、コンテンツ領域、致命的エラー表示を提供します。 *@
 
 @inherits LayoutComponentBase
+@implements IDisposable
+@inject UiLocalizer L
+@inject IJSRuntime JS
 
 <div class="app-shell">
     <header class="app-header">
@@ -9,13 +12,24 @@
             <p class="eyebrow">MICROSOFT AGENT GOVERNANCE TOOLKIT</p>
             <h1>Governance Control Room</h1>
         </div>
-        <nav class="page-navigation" aria-label="ページ">
-            <NavLink href="/" Match="NavLinkMatch.All">概要</NavLink>
-            <NavLink href="/demo">デモ</NavLink>
+        <nav class="page-navigation" aria-label="@L["Pages"]">
+            <NavLink href="/" Match="NavLinkMatch.All">@L["Overview"]</NavLink>
+            <NavLink href="/demo">@L["Demo"]</NavLink>
         </nav>
         <div class="environment-pill">
             <span class="status-dot"></span>
-            Public safe demo
+            @L["PublicSafeDemo"]
+        </div>
+        <div class="language-picker">
+            <label for="application-language">@L["Language"]</label>
+            <select id="application-language"
+                    value="@L.Culture"
+                    @onchange="ChangeCultureAsync">
+                @foreach (var culture in UiLocalizer.SupportedCultures)
+                {
+                    <option value="@culture">@culture</option>
+                }
+            </select>
         </div>
     </header>
 
@@ -25,7 +39,28 @@
 </div>
 
 <div id="blazor-error-ui">
-    エラーが発生しました。
-    <a href="" class="reload">再読み込み</a>
-    <a class="dismiss">閉じる</a>
+    @L["ErrorOccurred"]
+    <a href="" class="reload">@L["Reload"]</a>
+    <a class="dismiss">@L["Dismiss"]</a>
 </div>
+
+@code {
+    protected override void OnInitialized() => L.Changed += OnCultureChanged;
+
+    private async Task ChangeCultureAsync(ChangeEventArgs args)
+    {
+        var culture = args.Value?.ToString();
+        if (UiLocalizer.SupportedCultures.Contains(
+                culture ?? string.Empty,
+                StringComparer.OrdinalIgnoreCase))
+        {
+            await JS.InvokeVoidAsync(
+                "agentGovernanceLocalization.setCulture",
+                culture);
+        }
+    }
+
+    private void OnCultureChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => L.Changed -= OnCultureChanged;
+}

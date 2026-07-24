@@ -1,19 +1,16 @@
 @page "/"
+@inject UiLocalizer L
 
-<PageTitle>Agent Governance Toolkit デモ概要</PageTitle>
+<PageTitle>@L["HomeTitle"]</PageTitle>
 
 <section class="landing" aria-labelledby="landing-heading">
     <div class="landing-copy">
         <p class="landing-eyebrow">MICROSOFT AGENT GOVERNANCE TOOLKIT</p>
-        <h2 id="landing-heading">ガバナンス判断を段階ごとに追跡</h2>
-        <p>
-            固定シナリオを使い、Request、Governance Gate、Tool Execution、Result の
-            4 段階をリアルタイムに確認できます。拒否された実行では、適用ゲートと
-            C# コードパスを表示し、ツールが呼び出されなかった理由を説明します。
-        </p>
+        <h2 id="landing-heading">@L["HomeHeading"]</h2>
+        <p>@L["HomeDescription"]</p>
         <div class="landing-actions">
             <NavLink class="primary-link" href="/demo">
-                デモを開始
+                @L["StartDemo"]
                 <span aria-hidden="true">→</span>
             </NavLink>
             <a class="secondary-link"
@@ -21,22 +18,22 @@
                target="_blank"
                rel="noopener noreferrer">
                 Agent Governance Toolkit
-                <span class="visually-hidden">（新しいタブで開きます）</span>
+                <span class="visually-hidden">@L["NewTab"]</span>
             </a>
         </div>
     </div>
 
-    <aside class="landing-preview" aria-label="デモで確認できる実行フロー">
+    <aside class="landing-preview" aria-label="@L["FlowPreview"]">
         <p>GOVERNED TOOL CALL</p>
         <ol>
-            <li><span>1</span><strong>Request</strong></li>
-            <li><span>2</span><strong>Governance Gate</strong></li>
-            <li><span>3</span><strong>Tool Execution</strong></li>
-            <li><span>4</span><strong>Result</strong></li>
+            <li><span>1</span><strong>@L["Request"]</strong></li>
+            <li><span>2</span><strong>@L["GovernanceGate"]</strong></li>
+            <li><span>3</span><strong>@L["ToolExecution"]</strong></li>
+            <li><span>4</span><strong>@L["Result"]</strong></li>
         </ol>
         <div class="preview-result">
             <span aria-hidden="true">◆</span>
-            実行前に評価し、拒否時は fail-closed
+            @L["FailClosed"]
         </div>
     </aside>
 </section>
