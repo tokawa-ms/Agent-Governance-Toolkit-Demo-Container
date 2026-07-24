@@ -74,6 +74,21 @@
                 </header>
 
                 <div class="panel-body">
+                    <div class="run-actions">
+                        <button class="primary-action"
+                                type="button"
+                                disabled="@_isRunning"
+                                @onclick="RunSelectedAsync">
+                            @(_isRunning ? "実行中…" : "選択したシナリオを実行")
+                        </button>
+                        @if (_isRunning)
+                        {
+                            <button class="secondary-action" type="button" @onclick="CancelRun">
+                                キャンセル
+                            </button>
+                        }
+                    </div>
+
                     <fieldset class="scenario-list" disabled="@_isRunning">
                         <legend>実行するシナリオ</legend>
                         @foreach (var scenario in RunCoordinator.Scenarios)
@@ -100,21 +115,6 @@
                             </label>
                         }
                     </fieldset>
-
-                    <div class="run-actions">
-                        <button class="primary-action"
-                                type="button"
-                                disabled="@_isRunning"
-                                @onclick="RunSelectedAsync">
-                            @(_isRunning ? "実行中…" : "選択したシナリオを実行")
-                        </button>
-                        @if (_isRunning)
-                        {
-                            <button class="secondary-action" type="button" @onclick="CancelRun">
-                                キャンセル
-                            </button>
-                        }
-                    </div>
 
                     <section class="run-summary" aria-labelledby="run-summary-heading">
                         <div class="subheading-row">
