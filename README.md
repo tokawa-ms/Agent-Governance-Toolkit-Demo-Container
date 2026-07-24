@@ -49,6 +49,7 @@ flowchart LR
 - **Demo タブ左ペイン (35%)**: `/demo` で固定シナリオの選択、実行操作、現在の判断と出力の要約を表示します。
 - **Demo タブ右ペイン (65%)**: Request、Governance Gate、Tool Execution、Result の 4 段階を進行に合わせて更新し、拒否時は未実行・ブロックを明示します。下部には選択シナリオへ適用するゲートと確認済みの C# 抜粋を常時表示し、実行後は評価行、deny 分岐、早期 return のどこを通過したかを強調します。
 - **Audit Log タブ**: Blob Append が成功した現在のブラウザセッションの監査レコードを全幅表示します。タブを切り替えても実行状態、セッション、購読、監査レコードは保持されます。「Blob から再読込」は当日 UTC の JSONL を読み、現在のページで生成された監査セッション ID に一致する行を復元します。ページ再読み込み後は新しいセッション ID になります。
+- **多言語 UI**: 既定言語は日本語 (`ja-JP`) です。常に画面右上に表示される言語ドロップダウンから `en-US`、`ja-JP`、`zh-TW`、`zh-CN`、`zh-HK`、`ko-KR` を選択できます。選択した言語は Cookie に保存され、ページ移動やブラウザーの再読み込み後も維持されます。
 - ガバナンスイベントは容量 1,024 の単一 reader キューへ入り、最大 3 回の試行で日別 Append Blob に追記されます。同期コールバックをブロックしないため、満杯時は新しいイベントを拒否し、監査ストレージを失敗状態にします。
 
 ## 固定シナリオと安全境界
@@ -94,7 +95,7 @@ dotnet restore .\AgentGovernanceDemo.slnx --nologo
 dotnet run --project .\src\AgentGovernanceDemo\AgentGovernanceDemo.csproj --launch-profile https
 ```
 
-ブラウザーで `https://localhost:7011` を開くと概要ページ、`https://localhost:7011/demo` を開くとデモ画面を表示します。開発 HTTPS 証明書が未信頼の場合は、必要に応じて `dotnet dev-certs https --trust` を実行してください。
+ブラウザーで `https://localhost:7011` を開くと概要ページ、`https://localhost:7011/demo` を開くとデモ画面を表示します。表示言語は日本語が既定です。画面右上のドロップダウンで対応する 6 言語を切り替えられ、選択内容は次回アクセス時にも引き継がれます。開発 HTTPS 証明書が未信頼の場合は、必要に応じて `dotnet dev-certs https --trust` を実行してください。
 
 ### Azure Blob と Application Insights を接続する
 
