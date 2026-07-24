@@ -54,6 +54,38 @@
             }
         </div>
     </div>
+
+    <section class="policy-definition" aria-labelledby="policy-definition-heading">
+        <div class="policy-definition-heading">
+            <div>
+                <p class="code-eyebrow">GOVERNANCE GATE DEFINITION</p>
+                <h4 id="policy-definition-heading">Governance Gate 定義ファイル</h4>
+            </div>
+            <code>@State.PolicySourcePath</code>
+        </div>
+
+        <div class="policy-decision policy-decision-@StatusClass(State.PolicyDecisionStatus)"
+             role="status">
+            <strong>@PolicyDecisionLabel(State.PolicyDecisionStatus)</strong>
+            <span>@State.PolicyDecisionSummary</span>
+        </div>
+
+        <dl class="gate-facts">
+            <div>
+                <dt>適用結果</dt>
+                <dd>@PolicyDecisionLabel(State.PolicyDecisionStatus)</dd>
+            </div>
+            <div>
+                <dt>合致条件</dt>
+                <dd>@State.MatchedCondition</dd>
+            </div>
+        </dl>
+
+        <pre class="policy-source" aria-label="Governance Gate の YAML 定義"><code>@foreach (var line in State.PolicyLines)
+{
+<span class="policy-line code-@StatusClass(line.Status)"><span class="line-number" aria-hidden="true">@line.Number</span><span>@line.Text</span></span>
+}</code></pre>
+    </section>
 </section>
 
 @code {
@@ -85,5 +117,16 @@
             GovernanceCodePointStatus.NotTaken => "—",
             GovernanceCodePointStatus.Failed => "×",
             _ => "?"
+        };
+
+    private static string PolicyDecisionLabel(GovernanceCodePointStatus status) =>
+        status switch
+        {
+            GovernanceCodePointStatus.Pending => "未評価",
+            GovernanceCodePointStatus.Active => "評価中",
+            GovernanceCodePointStatus.Allowed => "通過",
+            GovernanceCodePointStatus.Blocked => "通過不可",
+            GovernanceCodePointStatus.Failed => "評価失敗",
+            _ => "未評価"
         };
 }
