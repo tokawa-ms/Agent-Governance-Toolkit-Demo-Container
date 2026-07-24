@@ -4,13 +4,14 @@
 @using AgentGovernanceDemo.Governance
 @using AgentGovernanceDemo.Presentation
 @inject GovernanceDemoService Governance
+@inject UiLocalizer L
 
 <section class="execution-flow @FlowClass"
-         aria-label="Execution flow: Request, Governance Gate, Tool Execution, Result">
+         aria-label="@L["ExecutionFlow"]">
     <div class="flow-heading">
         <div>
             <p class="flow-eyebrow">EXECUTION FLOW</p>
-            <h3>Request to result</h3>
+            <h3>@L["RequestToResult"]</h3>
         </div>
         <span class="run-status status-@RunStatusClass">
             <span aria-hidden="true">@RunStatusIcon</span>
@@ -23,13 +24,13 @@
         <div class="ready-state" role="status">
             <span class="ready-icon" aria-hidden="true">◇</span>
             <div>
-                <strong>Ready to run</strong>
-                <span>Select a scenario and start a run to see each governance stage.</span>
+                <strong>@L["ReadyToRun"]</strong>
+                <span>@L["ReadyDescription"]</span>
             </div>
         </div>
     }
 
-    <ol class="stage-flow" aria-label="Four execution stages">
+    <ol class="stage-flow" aria-label="@L["FourStages"]">
         @for (var index = 0; index < State.Stages.Count; index++)
         {
             var stage = State.Stages[index];
@@ -37,15 +38,15 @@
 
             <li class="stage-item">
                 <article class="stage-card stage-@StatusClass(status)"
-                         aria-label="@($"{stage.Title}: {StatusLabel(status)}")"
+                         aria-label="@($"{StageTitle(stage.Kind)}: {StatusLabel(status)}")"
                          aria-current="@(status == ExecutionFlowStageStatus.Active ? "step" : null)">
                     <div class="stage-card-header">
                         <span class="stage-icon kind-@KindClass(stage.Kind)" aria-hidden="true">
                             @StageIcon(stage.Kind)
                         </span>
-                        <span class="stage-number">Stage @(index + 1)</span>
+                        <span class="stage-number">@L.Format("Stage", index + 1)</span>
                     </div>
-                    <h4>@stage.Title</h4>
+                    <h4>@StageTitle(stage.Kind)</h4>
                     <span class="stage-status">
                         <span class="status-symbol" aria-hidden="true">@StatusIcon(status)</span>
                         @StatusLabel(status)
@@ -55,7 +56,7 @@
                     {
                         <strong class="denial-callout">
                             <span aria-hidden="true">!</span>
-                            Governance rejected this request
+                            @L["GovernanceRejected"]
                         </strong>
                     }
                 </article>
@@ -76,7 +77,7 @@
         <section class="detail-card decision-card" aria-labelledby="decision-heading">
             <div class="detail-heading">
                 <span aria-hidden="true">◆</span>
-                <h4 id="decision-heading">Decision reason</h4>
+                <h4 id="decision-heading">@L["DecisionReason"]</h4>
             </div>
             <p>@DecisionText</p>
         </section>
@@ -84,7 +85,7 @@
         <section class="detail-card output-card" aria-labelledby="output-heading">
             <div class="detail-heading">
                 <span aria-hidden="true">▣</span>
-                <h4 id="output-heading">Output / detail</h4>
+                <h4 id="output-heading">@L["OutputDetail"]</h4>
             </div>
             <pre>@OutputText</pre>
         </section>
@@ -137,11 +138,11 @@
 
     private string RunStatusLabel => RunStatus switch
     {
-        DemoRunStatus.Running => "Running",
-        DemoRunStatus.Allowed => "Allowed",
-        DemoRunStatus.Denied => "Denied",
-        DemoRunStatus.Failed => "Failed",
-        _ => "Ready"
+        DemoRunStatus.Running => L["Running"],
+        DemoRunStatus.Allowed => L["Allowed"],
+        DemoRunStatus.Denied => L["Denied"],
+        DemoRunStatus.Failed => L["Failed"],
+        _ => L["Ready"]
     };
 
     private string RunStatusClass => RunStatus?.ToString().ToLowerInvariant() ?? "ready";
@@ -156,26 +157,43 @@
     };
 
     private string DecisionText => !string.IsNullOrWhiteSpace(State.DecisionReason)
-        ? State.DecisionReason
+        ? LocalizedDecision
         : IsReady
-            ? "The governance decision will appear here."
-            : "No decision reason was provided.";
+            ? L["DecisionPlaceholder"]
+            : L["NoDecision"];
 
     private string OutputText => !string.IsNullOrWhiteSpace(State.Output)
-        ? State.Output
+        ? LocalizedOutput
         : IsDenied
-            ? "Blocked by governance. No tool output was produced."
+            ? L["NoToolOutput"]
             : !string.IsNullOrWhiteSpace(RunDetail)
                 ? RunDetail
                 : IsReady
-                    ? "Run output and execution details will appear here."
-                    : "No output is available yet.";
+                    ? L["OutputPlaceholder"]
+                    : L["NoOutputAvailable"];
+
+    private string LocalizedOutput => Scenario.ToolName switch
+    {
+        "GetWeather" => L["WeatherOutput"],
+        "GetTime" => L["TimeOutput"],
+        "GetLocation" => L["LocationOutput"],
+        _ => State.Output ?? L["NoOutputAvailable"]
+    };
+
+    private string LocalizedDecision => State.Decision?.GateKind switch
+    {
+        GovernanceGateKind.AllowlistRule => L["DecisionAllowlist"],
+        GovernanceGateKind.ExplicitDenyRule => L["DecisionExplicitDeny"],
+        GovernanceGateKind.DefaultDeny => L["DecisionDefaultDeny"],
+        GovernanceGateKind.PromptInjectionDetection => L["DecisionPromptInjection"],
+        _ => State.DecisionReason ?? L["NoDecision"]
+    };
 
     private string LiveSummary =>
         $"{RunStatusLabel}. "
         + string.Join(
             ", ",
-            State.Stages.Select(stage => $"{stage.Title} {StatusLabel(DisplayStatus(stage))}"));
+            State.Stages.Select(stage => $"{StageTitle(stage.Kind)} {StatusLabel(DisplayStatus(stage))}"));
 
     private ExecutionFlowStageStatus DisplayStatus(ExecutionFlowStage stage) =>
         IsReady ? ExecutionFlowStageStatus.Pending : stage.Status;
@@ -186,26 +204,37 @@
         stage.Kind == ExecutionFlowStageKind.GovernanceGate
         && status == ExecutionFlowStageStatus.Denied;
 
-    private static string StageMessage(
+    private string StageMessage(
         ExecutionFlowStage stage,
         ExecutionFlowStageStatus status)
     {
-        if (!string.IsNullOrWhiteSpace(stage.Message))
+        if (stage.Kind == ExecutionFlowStageKind.Result
+            && status == ExecutionFlowStageStatus.Succeeded
+            && !string.IsNullOrWhiteSpace(stage.Message))
         {
             return stage.Message;
         }
 
         return status switch
         {
-            ExecutionFlowStageStatus.Pending => "Waiting for this stage.",
-            ExecutionFlowStageStatus.Active => "This stage is in progress.",
-            ExecutionFlowStageStatus.Succeeded => "Completed successfully.",
-            ExecutionFlowStageStatus.Denied => "Blocked by governance.",
-            ExecutionFlowStageStatus.Skipped => "Not executed because an earlier stage stopped the flow.",
-            ExecutionFlowStageStatus.Failed => "This stage did not complete.",
+            ExecutionFlowStageStatus.Pending => L["WaitingStage"],
+            ExecutionFlowStageStatus.Active => L["ActiveStage"],
+            ExecutionFlowStageStatus.Succeeded => L["CompletedStage"],
+            ExecutionFlowStageStatus.Denied => L["BlockedStage"],
+            ExecutionFlowStageStatus.Skipped => L["SkippedStage"],
+            ExecutionFlowStageStatus.Failed => L["FailedStage"],
             _ => string.Empty
         };
     }
+
+    private string StageTitle(ExecutionFlowStageKind kind) => kind switch
+    {
+        ExecutionFlowStageKind.Request => L["Request"],
+        ExecutionFlowStageKind.GovernanceGate => L["GovernanceGate"],
+        ExecutionFlowStageKind.ToolExecution => L["ToolExecution"],
+        ExecutionFlowStageKind.Result => L["Result"],
+        _ => L["Unknown"]
+    };
 
     private static string KindClass(ExecutionFlowStageKind kind) =>
         kind switch
@@ -240,16 +269,16 @@
             _ => "pending"
         };
 
-    private static string StatusLabel(ExecutionFlowStageStatus status) =>
+    private string StatusLabel(ExecutionFlowStageStatus status) =>
         status switch
         {
-            ExecutionFlowStageStatus.Pending => "Pending",
-            ExecutionFlowStageStatus.Active => "Active",
-            ExecutionFlowStageStatus.Succeeded => "Succeeded",
-            ExecutionFlowStageStatus.Denied => "Denied",
-            ExecutionFlowStageStatus.Skipped => "Skipped",
-            ExecutionFlowStageStatus.Failed => "Failed",
-            _ => "Unknown"
+            ExecutionFlowStageStatus.Pending => L["Pending"],
+            ExecutionFlowStageStatus.Active => L["Active"],
+            ExecutionFlowStageStatus.Succeeded => L["Succeeded"],
+            ExecutionFlowStageStatus.Denied => L["Denied"],
+            ExecutionFlowStageStatus.Skipped => L["Skipped"],
+            ExecutionFlowStageStatus.Failed => L["Failed"],
+            _ => L["Unknown"]
         };
 
     private static string StatusIcon(ExecutionFlowStageStatus status) =>

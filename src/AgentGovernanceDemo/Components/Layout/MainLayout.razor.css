@@ -72,6 +72,35 @@
     padding: 0.45rem 0.75rem;
 }
 
+.language-picker {
+    align-items: center;
+    display: flex;
+    gap: 0.45rem;
+    margin-left: 0.75rem;
+}
+
+.language-picker label {
+    color: #9fb2c9;
+    font-size: 0.72rem;
+    font-weight: 800;
+}
+
+.language-picker select {
+    background: #101d31;
+    border: 1px solid rgba(116, 209, 255, 0.3);
+    border-radius: 8px;
+    color: #e9f6ff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 0.78rem;
+    padding: 0.42rem 1.7rem 0.42rem 0.55rem;
+}
+
+.language-picker select:focus-visible {
+    outline: 2px solid #74d1ff;
+    outline-offset: 2px;
+}
+
 .status-dot {
     background: #2ed39a;
     border-radius: 50%;
@@ -103,6 +132,14 @@
     }
 
     .environment-pill {
+        display: none;
+    }
+
+    .language-picker {
+        margin-left: auto;
+    }
+
+    .language-picker label {
         display: none;
     }
 }

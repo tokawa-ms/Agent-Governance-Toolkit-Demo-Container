@@ -5,41 +5,42 @@
 @using AgentGovernance.Audit
 @using AgentGovernanceDemo.Audit
 @using AgentGovernanceDemo.Integration
+@inject UiLocalizer L
 
 <article class="audit-view" aria-labelledby="@HeadingId">
     <header class="audit-header">
         <div>
             <p class="section-label">PERSISTED AUDIT</p>
-            <h3 id="@HeadingId">Blob に保存された監査レコード</h3>
+            <h3 id="@HeadingId">@L["PersistedAudit"]</h3>
         </div>
-        <span class="record-count">@Records.Count 件</span>
+        <span class="record-count">@L.Format("RecordCount", Records.Count)</span>
     </header>
 
     <div class="audit-context">
         <div>
-            <span>現在の監査セッション</span>
+            <span>@L["CurrentAuditSession"]</span>
             <code title="@SessionId">@DisplaySessionId</code>
         </div>
         <button class="reload-action"
                 type="button"
                 disabled="@IsRestoring"
                 @onclick="OnReload">
-            @(IsRestoring ? "復元中…" : "Blob から再読込")
+            @(IsRestoring ? L["Restoring"] : L["Restore"])
         </button>
     </div>
 
     <div class="storage-message @StorageStateClass"
          role="status"
          aria-live="polite">
-        @StorageHealth.Message
+        @StorageHealthMessage
     </div>
 
     @if (Records.Count == 0)
     {
         <div class="empty-state">
             <span class="empty-icon" aria-hidden="true">◫</span>
-            <h4>永続化済みイベントはありません</h4>
-            <p>Blob Append に成功したレコードだけが表示されます。</p>
+            <h4>@L["NoPersistedEvents"]</h4>
+            <p>@L["PersistedOnly"]</p>
         </div>
     }
     else
@@ -52,7 +53,7 @@
                     <div class="audit-summary">
                         <div>
                             <span class="outcome-badge @(denied ? "deny" : "allow")">
-                                @(denied ? "拒否" : "許可")
+                                @(denied ? L["Denied"] : L["Allowed"])
                             </span>
                             <strong>@EventTypeLabel(record.Type)</strong>
                         </div>
@@ -62,16 +63,16 @@
                     </div>
                     <dl>
                         <div>
-                            <dt>イベント</dt>
+                            <dt>@L["Event"]</dt>
                             <dd><code>@record.EventId</code></dd>
                         </div>
                         <div>
-                            <dt>ポリシー</dt>
+                            <dt>@L["Policy"]</dt>
                             <dd>@(record.PolicyName ?? "—")</dd>
                         </div>
                     </dl>
                     <details>
-                        <summary>JSON 詳細を表示</summary>
+                        <summary>@L["ShowJson"]</summary>
                         <pre>@FormatJson(record)</pre>
                     </details>
                 </li>
@@ -120,6 +121,13 @@
         _ => "degraded"
     };
 
+    private string StorageHealthMessage => StorageHealth.State switch
+    {
+        StorageHealthState.Healthy => L["StorageHealthyMessage"],
+        StorageHealthState.Failed => L["StorageFailedMessage"],
+        _ => L["StorageUnverifiedMessage"]
+    };
+
     private static bool IsDenied(GovernanceAuditRecord record)
     {
         // EN: Strongly typed violation events are checked first; the JSON fallback supports toolkit event variations.
@@ -139,13 +147,13 @@
     private static string FormatJson(GovernanceAuditRecord record) =>
         JsonSerializer.Serialize(record, DisplayJsonOptions);
 
-    private static string EventTypeLabel(GovernanceEventType type) => type switch
+    private string EventTypeLabel(GovernanceEventType type) => type switch
     {
-        GovernanceEventType.PolicyCheck => "ポリシーチェック",
-        GovernanceEventType.PolicyViolation => "ポリシー違反",
-        GovernanceEventType.ToolCallBlocked => "ツール呼び出し拒否",
-        GovernanceEventType.TrustFailed => "信頼検証失敗",
-        GovernanceEventType.TrustVerified => "信頼検証成功",
+        GovernanceEventType.PolicyCheck => L["PolicyCheck"],
+        GovernanceEventType.PolicyViolation => L["PolicyViolation"],
+        GovernanceEventType.ToolCallBlocked => L["ToolCallBlocked"],
+        GovernanceEventType.TrustFailed => L["TrustFailed"],
+        GovernanceEventType.TrustVerified => L["TrustVerified"],
         _ => type.ToString()
     };
 }

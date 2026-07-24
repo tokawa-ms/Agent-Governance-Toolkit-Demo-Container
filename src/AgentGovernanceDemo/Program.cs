@@ -1,15 +1,18 @@
 // EN: Composes the web host, validated options, governance services, audit pipeline, security middleware, and Blazor endpoints.
 // JA: Web ホスト、検証済み設定、ガバナンスサービス、監査パイプライン、セキュリティミドルウェア、Blazor エンドポイントを構成します。
 
+using System.Globalization;
 using AgentGovernanceDemo.Audit;
 using AgentGovernanceDemo.Components;
 using AgentGovernanceDemo.Configuration;
 using AgentGovernanceDemo.Governance;
 using AgentGovernanceDemo.Integration;
+using AgentGovernanceDemo.Localization;
 using AgentGovernanceDemo.Telemetry;
 using Azure.Core;
 using Azure.Identity;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -18,6 +21,20 @@ var builder = WebApplication.CreateBuilder(args);
 // JA: ホストをビルドする前に、表示、構成、ガバナンス、ストレージ、可観測性の依存関係を登録します。
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+builder.Services.AddScoped<UiLocalizer>();
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    var supportedCultures = UiLocalizer.SupportedCultures
+        .Select(CultureInfo.GetCultureInfo)
+        .ToArray();
+    options.DefaultRequestCulture = new RequestCulture(UiLocalizer.DefaultCulture);
+    options.SupportedCultures = supportedCultures;
+    options.SupportedUICultures = supportedCultures;
+    options.RequestCultureProviders =
+    [
+        new CookieRequestCultureProvider()
+    ];
+});
 builder.Services.AddOptions<DemoOptions>()
     .Bind(builder.Configuration.GetSection(DemoOptions.SectionName))
     .ValidateDataAnnotations()
@@ -103,6 +120,7 @@ if (!app.Environment.IsDevelopment())
 
 app.UseForwardedHeaders();
 app.UseHttpsRedirection();
+app.UseRequestLocalization();
 // EN: Add defense-in-depth response headers before serving static files or interactive components.
 // JA: 静的ファイルや対話型コンポーネントを提供する前に、多層防御のレスポンスヘッダーを追加します。
 app.Use(async (context, next) =>
@@ -117,6 +135,35 @@ app.Use(async (context, next) =>
 
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+app.MapGet("/culture/set", (
+    string culture,
+    string? returnUrl,
+    HttpContext context) =>
+{
+    var selectedCulture = UiLocalizer.SupportedCultures.FirstOrDefault(
+        item => string.Equals(item, culture, StringComparison.OrdinalIgnoreCase))
+        ?? UiLocalizer.DefaultCulture;
+    context.Response.Cookies.Append(
+        CookieRequestCultureProvider.DefaultCookieName,
+        CookieRequestCultureProvider.MakeCookieValue(
+            new RequestCulture(selectedCulture)),
+        new CookieOptions
+        {
+            HttpOnly = true,
+            IsEssential = true,
+            MaxAge = TimeSpan.FromDays(365),
+            SameSite = SameSiteMode.Lax,
+            Secure = context.Request.IsHttps
+        });
+
+    var localReturnUrl = !string.IsNullOrWhiteSpace(returnUrl)
+        && returnUrl.StartsWith("/", StringComparison.Ordinal)
+        && !returnUrl.StartsWith("//", StringComparison.Ordinal)
+            ? returnUrl
+            : "/";
+    return Results.LocalRedirect(localReturnUrl);
+});
 
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();

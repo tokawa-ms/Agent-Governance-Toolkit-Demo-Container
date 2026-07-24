@@ -2,7 +2,7 @@
     JA: HTML ドキュメントの外枠を定義し、対話型サーバーレンダリングの Blazor コンポーネントツリーを起動します。 *@
 
 <!DOCTYPE html>
-<html lang="ja">
+<html lang="ja-JP">
 
 <head>
     <meta charset="utf-8" />
@@ -16,6 +16,7 @@
 
 <body>
     <Routes @rendermode="InteractiveServer" />
+    <script src="localization.js"></script>
     <script src="_framework/blazor.web.js"></script>
 </body>
 

@@ -23,21 +23,22 @@
 @inject DemoTelemetry DemoTelemetry
 @inject TelemetryStatus TelemetryStatus
 @inject IOptions<StorageOptions> StorageOptions
+@inject UiLocalizer L
 
-<PageTitle>Agent Governance Toolkit デモ</PageTitle>
+<PageTitle>@L["DemoTitle"]</PageTitle>
 
 <section class="demo-header" aria-labelledby="page-heading">
     <div>
         <p class="section-label">LIVE DEMO</p>
-        <h2 id="page-heading">ガバナンス実行デモ</h2>
+        <h2 id="page-heading">@L["DemoHeading"]</h2>
     </div>
-    <div class="service-statuses" aria-label="サービス状態">
+    <div class="service-statuses" aria-label="@L["ServiceStatus"]">
         <div class="service-status @StorageStateClass">
-            <span>監査ストレージ</span>
+            <span>@L["AuditStorage"]</span>
             <strong>@StorageStateLabel</strong>
         </div>
         <div class="service-status @TelemetryStateClass">
-            <span>テレメトリ</span>
+            <span>@L["Telemetry"]</span>
             <strong>@TelemetryStateLabel</strong>
         </div>
     </div>
@@ -51,10 +52,13 @@
     </div>
 }
 
-<section class="workspace" aria-label="ガバナンスデモ ワークスペース">
+<section class="workspace" aria-label="@L["Workspace"]">
     <AppTabBar @bind-SelectedTab="_selectedTab"
                AuditCount="_auditRecords.Count"
-               AriaLabel="表示するワークスペース"
+               AriaLabel="@L["WorkspaceViews"]"
+               DemoLabel="@L["Demo"]"
+               AuditLabel="@L["AuditLog"]"
+               AuditCountFormat="@L["Items"]"
                DemoPanelId="demo-tab-panel"
                AuditPanelId="audit-log-tab-panel" />
 
@@ -68,7 +72,7 @@
                 <header class="panel-header">
                     <div>
                         <p class="section-label">SCENARIO</p>
-                        <h3 id="execution-heading">固定シナリオと実行概要</h3>
+                        <h3 id="execution-heading">@L["ScenarioSummary"]</h3>
                     </div>
                     <span class="panel-status @RunStatusClass" aria-live="polite">@RunStatusLabel</span>
                 </header>
@@ -79,18 +83,18 @@
                                 type="button"
                                 disabled="@_isRunning"
                                 @onclick="RunSelectedAsync">
-                            @(_isRunning ? "実行中…" : "選択したシナリオを実行")
+                            @(_isRunning ? L["RunningEllipsis"] : L["RunSelected"])
                         </button>
                         @if (_isRunning)
                         {
                             <button class="secondary-action" type="button" @onclick="CancelRun">
-                                キャンセル
+                                @L["Cancel"]
                             </button>
                         }
                     </div>
 
                     <fieldset class="scenario-list" disabled="@_isRunning">
-                        <legend>実行するシナリオ</legend>
+                        <legend>@L["ScenarioToRun"]</legend>
                         @foreach (var scenario in RunCoordinator.Scenarios)
                         {
                             var inputId = $"scenario-{scenario.Id}";
@@ -106,7 +110,7 @@
                                     <span class="scenario-title-row">
                                         <strong>@ScenarioTitle(scenario)</strong>
                                         <span class="outcome-badge @(scenario.ExpectedOutcome == GovernanceExpectedOutcome.Allow ? "allow" : "deny")">
-                                            @(scenario.ExpectedOutcome == GovernanceExpectedOutcome.Allow ? "許可予定" : "拒否予定")
+                                            @(scenario.ExpectedOutcome == GovernanceExpectedOutcome.Allow ? L["ExpectedAllow"] : L["ExpectedDeny"])
                                         </span>
                                     </span>
                                     <span>@ScenarioDescription(scenario)</span>
@@ -118,20 +122,20 @@
 
                     <section class="run-summary" aria-labelledby="run-summary-heading">
                         <div class="subheading-row">
-                            <h4 id="run-summary-heading">実行概要</h4>
+                            <h4 id="run-summary-heading">@L["RunSummary"]</h4>
                             <span class="outcome-badge @RunSummaryBadgeClass">@RunStatusLabel</span>
                         </div>
                         <dl>
                             <div>
-                                <dt>シナリオ</dt>
+                                <dt>@L["Scenario"]</dt>
                                 <dd>@ScenarioTitle(SelectedScenario)</dd>
                             </div>
                             <div>
-                                <dt>判断</dt>
+                                <dt>@L["Decision"]</dt>
                                 <dd>@RunSummaryDecision</dd>
                             </div>
                             <div>
-                                <dt>結果</dt>
+                                <dt>@L["Result"]</dt>
                                 <dd>@RunSummaryOutput</dd>
                             </div>
                         </dl>
@@ -161,8 +165,8 @@
 </section>
 
 <footer class="page-footer">
-    <p>@TelemetryStatus.Message</p>
-    <p>接続文字列や資格情報は画面・テレメトリ・監査レコードへ出力しません。</p>
+    <p>@TelemetryMessage</p>
+    <p>@L["SecretNotice"]</p>
 </footer>
 
 @code {
@@ -189,13 +193,13 @@
     private GovernanceScenario SelectedScenario =>
         GovernanceScenarioCatalog.GetRequired(_selectedScenarioId);
     private string RunStatusLabel => _isRunning
-        ? "実行中"
+        ? L["Running"]
         : _currentRun?.Status switch
         {
-            DemoRunStatus.Allowed => "許可",
-            DemoRunStatus.Denied => "拒否",
-            DemoRunStatus.Failed => "失敗",
-            _ => "待機中"
+            DemoRunStatus.Allowed => L["Allowed"],
+            DemoRunStatus.Denied => L["Denied"],
+            DemoRunStatus.Failed => L["Failed"],
+            _ => L["Waiting"]
         };
     private string RunStatusClass => _isRunning
         ? "running"
@@ -214,14 +218,14 @@
     };
     private string RunSummaryDecision =>
         _executionFlow.DecisionReason
-        ?? (_isRunning ? "ポリシー評価を待機中です。" : "まだ実行されていません。");
+        ?? (_isRunning ? L["AwaitingPolicy"] : L["NotRun"]);
     private string RunSummaryOutput =>
         _executionFlow.Output
         ?? (_currentRun?.Status == DemoRunStatus.Denied
-            ? "ガバナンスによりブロックされ、ツールは実行されませんでした。"
+            ? L["BlockedNoTool"]
             : _isRunning
-                ? "実行中です。"
-                : "まだ出力はありません。");
+                ? L["InProgress"]
+                : L["NoOutput"]);
     private string StorageStateClass => StorageHealth.Current.State switch
     {
         StorageHealthState.Healthy => "healthy",
@@ -230,9 +234,9 @@
     };
     private string StorageStateLabel => StorageHealth.Current.State switch
     {
-        StorageHealthState.Healthy => "正常",
-        StorageHealthState.Failed => "失敗",
-        _ => "未確認"
+        StorageHealthState.Healthy => L["Healthy"],
+        StorageHealthState.Failed => L["Failed"],
+        _ => L["Unverified"]
     };
     private string TelemetryStateClass => TelemetryStatus.State switch
     {
@@ -242,9 +246,15 @@
     };
     private string TelemetryStateLabel => TelemetryStatus.State switch
     {
-        TelemetryState.Configured => "有効",
-        TelemetryState.Degraded => "構成エラー",
-        _ => "無効"
+        TelemetryState.Configured => L["Enabled"],
+        TelemetryState.Degraded => L["ConfigurationError"],
+        _ => L["Disabled"]
+    };
+    private string TelemetryMessage => TelemetryStatus.State switch
+    {
+        TelemetryState.Configured => L["TelemetryConfigured"],
+        TelemetryState.Degraded => L["TelemetryInvalid"],
+        _ => L["TelemetryDisabled"]
     };
 
     protected override async Task OnInitializedAsync()
@@ -284,7 +294,9 @@
 
         if (!RunRateLimiter.TryAcquire(_subscriberId, out var retryAfter))
         {
-            _notice = $"実行回数の上限に達しました。約 {Math.Max(1, Math.Ceiling(retryAfter.TotalSeconds))} 秒後に再試行してください。";
+            _notice = L.Format(
+                "RateLimit",
+                Math.Max(1, Math.Ceiling(retryAfter.TotalSeconds)));
             _noticeIsError = true;
             return;
         }
@@ -318,22 +330,22 @@
                     ? TelemetryOutcome.Failed
                     : TelemetryOutcome.Succeeded);
             _notice = _currentRun.Allowed
-                ? "ポリシーで許可され、固定ツールの実行が完了しました。"
-                : "ポリシーで拒否されました。ツールは実行されていません。";
+                ? L["RunAllowedNotice"]
+                : L["RunDeniedNotice"];
         }
         catch (OperationCanceledException)
         {
             telemetry.Complete(TelemetryOutcome.Failed);
-            _notice = "実行をキャンセルしました。";
+            _notice = L["RunCancelled"];
             _executionFlow = ExecutionFlowState.Cancelled(
                 _timeline,
                 GetCurrentStage(),
-                "ユーザーが実行を停止しました。");
+                L["UserStopped"]);
         }
         catch (Exception exception)
         {
             telemetry.Complete(TelemetryOutcome.Failed);
-            _notice = $"実行に失敗しました: {exception.GetBaseException().Message}";
+            _notice = L.Format("RunFailure", exception.GetBaseException().Message);
             _noticeIsError = true;
             _executionFlow = ExecutionFlowState.Failed(
                 _timeline,
@@ -378,7 +390,7 @@
         }
         catch (Exception)
         {
-            StorageHealth.MarkFailed("認証または Blob 読み取りに失敗しました。");
+            StorageHealth.MarkFailed(L["BlobReadFailure"]);
         }
         finally
         {
@@ -458,25 +470,25 @@
         return incompleteStage?.Kind ?? ExecutionFlowStageKind.Result;
     }
 
-    private static string ScenarioTitle(GovernanceScenario scenario) => scenario.Id switch
+    private string ScenarioTitle(GovernanceScenario scenario) => scenario.Id switch
     {
-        "weather-allowed" => "天気情報を取得",
-        "time-allowed" => "UTC 時刻を取得",
-        "location-allowed" => "デモ位置情報を取得",
-        "shell-explicitly-denied" => "シェル実行を試行",
-        "unknown-default-denied" => "未登録ツールを試行",
-        "prompt-injection-denied" => "プロンプトインジェクションを検出",
+        "weather-allowed" => L["WeatherTitle"],
+        "time-allowed" => L["TimeTitle"],
+        "location-allowed" => L["LocationTitle"],
+        "shell-explicitly-denied" => L["ShellTitle"],
+        "unknown-default-denied" => L["UnknownTitle"],
+        "prompt-injection-denied" => L["InjectionTitle"],
         _ => scenario.Title
     };
 
-    private static string ScenarioDescription(GovernanceScenario scenario) => scenario.Id switch
+    private string ScenarioDescription(GovernanceScenario scenario) => scenario.Id switch
     {
-        "weather-allowed" => "読み取り専用の固定天気データを返します。",
-        "time-allowed" => "固定された UTC 時刻データを返します。",
-        "location-allowed" => "固定されたデモ用位置情報を返します。",
-        "shell-explicitly-denied" => "明示的な拒否ルールを確認します。シェルは存在しません。",
-        "unknown-default-denied" => "Default deny により未登録ツールを拒否します。",
-        "prompt-injection-denied" => "敵対的な固定文字列を実行前に検出します。",
+        "weather-allowed" => L["WeatherDescription"],
+        "time-allowed" => L["TimeDescription"],
+        "location-allowed" => L["LocationDescription"],
+        "shell-explicitly-denied" => L["ShellDescription"],
+        "unknown-default-denied" => L["UnknownDescription"],
+        "prompt-injection-denied" => L["InjectionDescription"],
         _ => scenario.Description
     };
 
