@@ -49,7 +49,7 @@ flowchart LR
 - **Demo タブ左ペイン (35%)**: `/demo` で固定シナリオの選択、実行操作、現在の判断と出力の要約を表示します。
 - **Demo タブ右ペイン (65%)**: Request、Governance Gate、Tool Execution、Result の 4 段階を進行に合わせて更新し、拒否時は未実行・ブロックを明示します。下部には選択シナリオへ適用するゲートと確認済みの C# 抜粋を常時表示し、実行後は評価行、deny 分岐、早期 return のどこを通過したかを強調します。
 - **Audit Log タブ**: Blob Append が成功した現在のブラウザセッションの監査レコードを全幅表示します。タブを切り替えても実行状態、セッション、購読、監査レコードは保持されます。「Blob から再読込」は当日 UTC の JSONL を読み、現在のページで生成された監査セッション ID に一致する行を復元します。ページ再読み込み後は新しいセッション ID になります。
-- ガバナンスイベントは容量 1,024 の単一 reader キューへ入り、最大 3 回再試行して日別 Append Blob に追記されます。
+- ガバナンスイベントは容量 1,024 の単一 reader キューへ入り、最大 3 回の試行で日別 Append Blob に追記されます。同期コールバックをブロックしないため、満杯時は新しいイベントを拒否し、監査ストレージを失敗状態にします。
 
 ## 固定シナリオと安全境界
 
@@ -62,7 +62,7 @@ flowchart LR
 | `unknown-default-denied`  | `UnknownTool`   |     拒否 | `default_action: deny` により拒否        |
 | `prompt-injection-denied` | `GetWeather`    |     拒否 | 固定された敵対文字列をツール実行前に検出 |
 
-同じポリシーを `src\AgentGovernanceDemo\policies\default.yaml` に検証可能な形で保持し、現在の runtime はコードに埋め込んだ同内容の YAML を読み込みます。競合時は deny を優先します。許可された 3 ツールもネットワーク、OS、ファイル、Azure API を呼ばず、固定文字列だけを返します。
+実行時は `src\AgentGovernanceDemo\policies\default.yaml` を読み込みます。このファイルはビルドおよび publish 出力へコピーされます。コード内にも同内容の既定ポリシーをフォールバックおよび説明 UI 用に保持しています。競合時は deny を優先します。許可された 3 ツールもネットワーク、OS、ファイル、Azure API を呼ばず、固定文字列だけを返します。
 
 右ペインの C# 抜粋は publish 後にも表示できる説明用の固定データです。実際の Toolkit 判断結果とライブ実行状態に連動して強調され、重要行が実装から外れた場合はテストで検出します。
 
@@ -108,18 +108,20 @@ $env:APPLICATIONINSIGHTS_CONNECTION_STRING = '<Application Insights connection s
 dotnet run --project .\src\AgentGovernanceDemo\AgentGovernanceDemo.csproj --launch-profile https
 ```
 
-値を設定しない場合、`appsettings.json` の Storage URI とコンテナー名が使われます。`APPLICATIONINSIGHTS_CONNECTION_STRING` は未設定ならテレメトリ無効、不正形式なら構成エラー表示になります。接続文字列、資格情報、トークンを README、ソース、ログへ貼り付けないでください。
+値を設定しない場合、`appsettings.json` の Storage URI とコンテナー名が使われます。既定の `https://devstoreaccount1.blob.core.windows.net/` は未接続デモ用のプレースホルダーであり、Azurite を自動起動または構成するものではありません。この状態では UI とポリシー判定は動作しますが、Blob の読み書きは失敗状態になります。`APPLICATIONINSIGHTS_CONNECTION_STRING` は未設定ならテレメトリ無効、不正形式なら構成エラー表示になります。接続文字列、資格情報、トークンを README、ソース、ログへ貼り付けないでください。
 
 ### 構成リファレンス
 
-| 環境変数                                | 必須条件                 | 用途                                                |
-| --------------------------------------- | ------------------------ | --------------------------------------------------- |
-| `Storage__AccountUri`                   | Azure 監査を使う場合     | HTTPS Blob service URI                              |
-| `Storage__AuditContainerName`           | Azure 監査を使う場合     | 小文字の Blob コンテナー名。既定 `agt-audit`        |
-| `Demo__MaxRunsPerMinute`                | 任意                     | ブラウザーセッション単位の実行上限。既定 8          |
-| `AZURE_CLIENT_ID`                       | Standard ACA 配置時      | Runtime User-assigned Managed Identity の client ID |
-| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Monitor を使う場合 | Workspace-based Application Insights 接続文字列     |
-| `ASPNETCORE_URLS`                       | コンテナー時             | 配置スクリプトは `http://+:8080` を設定             |
+| 環境変数                                | 必須条件                 | 用途                                                    |
+| --------------------------------------- | ------------------------ | ------------------------------------------------------- |
+| `Storage__AccountUri`                   | Azure 監査を使う場合     | HTTPS Blob service URI                                  |
+| `Storage__AuditContainerName`           | Azure 監査を使う場合     | 小文字の Blob コンテナー名。既定 `agt-audit`            |
+| `Storage__RecentRecordLimit`            | 任意                     | UI で復元・保持する監査レコード上限。既定 100、最大 500 |
+| `Demo__MaxRunsPerMinute`                | 任意                     | ブラウザーセッション単位の実行上限。既定 8              |
+| `Demo__StepDelayMilliseconds`           | 任意                     | 4 段階フロー間の表示遅延。既定 450 ms、最大 5,000 ms    |
+| `AZURE_CLIENT_ID`                       | Standard ACA 配置時      | Runtime User-assigned Managed Identity の client ID     |
+| `APPLICATIONINSIGHTS_CONNECTION_STRING` | Azure Monitor を使う場合 | Workspace-based Application Insights 接続文字列         |
+| `ASPNETCORE_URLS`                       | コンテナー時             | 配置スクリプトは `http://+:8080` を設定                 |
 
 ## ビルド、テスト、Linux publish、Docker
 
@@ -137,6 +139,7 @@ dotnet publish .\src\AgentGovernanceDemo\AgentGovernanceDemo.csproj `
 
 docker build `
   --platform linux/amd64 `
+  --provenance=false `
   --file .\src\AgentGovernanceDemo\Dockerfile `
   --tag agent-governance-demo:local `
   .
@@ -146,7 +149,7 @@ docker run --rm --name agent-governance-demo `
   agent-governance-demo:local
 ```
 
-Docker 実行時は `http://localhost:8080` を開きます。Azure 構成を渡す場合は、シークレットをコマンド履歴へ直接記載せず `--env-file` 等のローカルな秘密管理手段を使用してください。
+Docker 実行時は `http://localhost:8080` を開きます。`--provenance=false` は、単一の Linux amd64 イメージとして扱えない OCI provenance index が Azure Container Apps へ渡ることを防ぎ、CI のコンテナービルド設定とも整合させます。Azure 構成を渡す場合は、シークレットをコマンド履歴へ直接記載せず `--env-file` 等のローカルな秘密管理手段を使用してください。
 
 ## Azure リソースと Standard Container Apps 配置
 
@@ -343,7 +346,7 @@ AppMetrics
 - コンテナーは非 root の `app` user、diagnostics 無効、Linux amd64 固定
 - GitHub Actions は OIDC を使用し、checkout action 等を commit SHA で固定
 
-旧 Express app/environment は Standard 移行後に廃止済みです。ACR admin user は無効で、Standard app は Managed Identity だけでイメージを pull します。旧 Runtime Entra app は自動削除の対象外です。
+ACR admin user は Bicep で無効化され、Standard app は User-assigned Managed Identity だけでイメージを pull します。
 
 ## Standard ACA と scale-to-zero
 
