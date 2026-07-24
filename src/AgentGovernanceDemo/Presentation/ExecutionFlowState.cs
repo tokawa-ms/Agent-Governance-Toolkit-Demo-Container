@@ -64,11 +64,13 @@ public sealed class ExecutionFlowState
     private ExecutionFlowState(
         IReadOnlyList<ExecutionFlowStage> stages,
         string? decisionReason,
-        string? output)
+        string? output,
+        GovernanceDecisionDetails? decision)
     {
         _stages = stages;
         DecisionReason = decisionReason;
         Output = output;
+        Decision = decision;
     }
 
     public IReadOnlyList<ExecutionFlowStage> Stages => _stages;
@@ -84,6 +86,8 @@ public sealed class ExecutionFlowState
     public string? DecisionReason { get; }
 
     public string? Output { get; }
+
+    public GovernanceDecisionDetails? Decision { get; }
 
     public static ExecutionFlowState Initial { get; } = FromEvents([]);
 
@@ -171,7 +175,11 @@ public sealed class ExecutionFlowState
             ActivateNextStage(stages);
         }
 
-        return new ExecutionFlowState(Array.AsReadOnly(stages), decisionReason, output);
+        return new ExecutionFlowState(
+            Array.AsReadOnly(stages),
+            decisionReason,
+            output,
+            runState?.Decision);
     }
 
     private static ExecutionFlowStage CreateStage(

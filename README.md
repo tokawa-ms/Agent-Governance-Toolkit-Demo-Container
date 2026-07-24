@@ -45,8 +45,9 @@ flowchart LR
     Q --> A
 ```
 
-- **Demo タブ左ペイン (35%)**: 固定シナリオの選択、実行操作、現在の判断と出力の要約を表示します。
-- **Demo タブ右ペイン (65%)**: Request、Governance Gate、Tool Execution、Result の 4 段階を進行に合わせて更新し、拒否時は未実行・ブロックを明示します。
+- **概要ページ (`/`)**: デモの目的と 4 段階のガバナンスフローを簡潔に説明し、専用デモページへ案内します。
+- **Demo タブ左ペイン (35%)**: `/demo` で固定シナリオの選択、実行操作、現在の判断と出力の要約を表示します。
+- **Demo タブ右ペイン (65%)**: Request、Governance Gate、Tool Execution、Result の 4 段階を進行に合わせて更新し、拒否時は未実行・ブロックを明示します。下部には選択シナリオへ適用するゲートと確認済みの C# 抜粋を常時表示し、実行後は評価行、deny 分岐、早期 return のどこを通過したかを強調します。
 - **Audit Log タブ**: Blob Append が成功した現在のブラウザセッションの監査レコードを全幅表示します。タブを切り替えても実行状態、セッション、購読、監査レコードは保持されます。「Blob から再読込」は当日 UTC の JSONL を読み、現在のページで生成された監査セッション ID に一致する行を復元します。ページ再読み込み後は新しいセッション ID になります。
 - ガバナンスイベントは容量 1,024 の単一 reader キューへ入り、最大 3 回再試行して日別 Append Blob に追記されます。
 
@@ -62,6 +63,8 @@ flowchart LR
 | `prompt-injection-denied` | `GetWeather`    |     拒否 | 固定された敵対文字列をツール実行前に検出 |
 
 同じポリシーを `src\AgentGovernanceDemo\policies\default.yaml` に検証可能な形で保持し、現在の runtime はコードに埋め込んだ同内容の YAML を読み込みます。競合時は deny を優先します。許可された 3 ツールもネットワーク、OS、ファイル、Azure API を呼ばず、固定文字列だけを返します。
+
+右ペインの C# 抜粋は publish 後にも表示できる説明用の固定データです。実際の Toolkit 判断結果とライブ実行状態に連動して強調され、重要行が実装から外れた場合はテストで検出します。
 
 ## 前提条件
 
@@ -91,7 +94,7 @@ dotnet restore .\AgentGovernanceDemo.slnx --nologo
 dotnet run --project .\src\AgentGovernanceDemo\AgentGovernanceDemo.csproj --launch-profile https
 ```
 
-ブラウザーで `https://localhost:7011` を開きます。開発 HTTPS 証明書が未信頼の場合は、必要に応じて `dotnet dev-certs https --trust` を実行してください。
+ブラウザーで `https://localhost:7011` を開くと概要ページ、`https://localhost:7011/demo` を開くとデモ画面を表示します。開発 HTTPS 証明書が未信頼の場合は、必要に応じて `dotnet dev-certs https --trust` を実行してください。
 
 ### Azure Blob と Application Insights を接続する
 

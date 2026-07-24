@@ -26,6 +26,8 @@ public sealed class DemoRunCoordinatorTests
         Assert.NotNull(run.Output);
         Assert.NotEmpty(run.SessionId);
         Assert.True(run.Sequence > 0);
+        Assert.Equal(GovernanceGateKind.AllowlistRule, run.Decision.GateKind);
+        Assert.True(run.Decision.Allowed);
         Assert.Contains(run.Steps, s => s.Kind == DemoRunStepKind.ToolExecution
             && s.Status == DemoRunStepStatus.Completed);
     }
@@ -43,6 +45,7 @@ public sealed class DemoRunCoordinatorTests
         var run = await coordinator.RunAsync(scenarioId);
 
         Assert.Equal(DemoRunStatus.Denied, run.Status);
+        Assert.False(run.Decision.Allowed);
         Assert.Equal(0, executor.ExecutionCount);
         Assert.Contains(run.Steps, s => s.Kind == DemoRunStepKind.ToolExecution
             && s.Status == DemoRunStepStatus.Skipped);
