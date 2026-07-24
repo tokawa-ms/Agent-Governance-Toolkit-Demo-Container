@@ -58,19 +58,20 @@ public sealed class GovernanceDemoService : IDisposable
             EnableCircuitBreaker = false
         });
 
-        if (!string.IsNullOrWhiteSpace(policyPath))
-        {
-            // Note 4 (EN): Tests or advanced demos can provide an external policy without changing this class.
-            // Note 4 (JA): テストや発展デモでは、このクラスを変更せず外部ポリシーへ差し替えられます。
-            Kernel.LoadPolicy(policyPath);
-        }
-        else
-        {
-            Kernel.LoadPolicyFromYaml(DefaultPolicyYaml);
-        }
+        // Note 4 (EN): Keep the exact loaded definition available for the explainable UI.
+        // Note 4 (JA): 説明可能な UI で表示できるよう、実際に読み込んだ定義を保持します。
+        PolicyDefinition = string.IsNullOrWhiteSpace(policyPath)
+            ? new GovernancePolicyDefinition("組み込み default policy", DefaultPolicyYaml)
+            : new GovernancePolicyDefinition(
+                $"policies/{Path.GetFileName(policyPath)}",
+                File.ReadAllText(policyPath));
+
+        Kernel.LoadPolicyFromYaml(PolicyDefinition.Yaml);
     }
 
     public GovernanceKernel Kernel { get; }
+
+    public GovernancePolicyDefinition PolicyDefinition { get; }
 
     /// <summary>
     /// EN: Evaluates a tool request against the configured fail-closed governance policy.<br/>
@@ -98,3 +99,7 @@ public sealed class GovernanceDemoService : IDisposable
 
     public void Dispose() => Kernel.Dispose();
 }
+
+public sealed record GovernancePolicyDefinition(
+    string SourcePath,
+    string Yaml);

@@ -3,6 +3,7 @@
 
 @using AgentGovernanceDemo.Governance
 @using AgentGovernanceDemo.Presentation
+@inject GovernanceDemoService Governance
 
 <section class="execution-flow @FlowClass"
          aria-label="Execution flow: Request, Governance Gate, Tool Execution, Result">
@@ -115,7 +116,11 @@
     public string? RunDetail { get; set; }
 
     private GovernanceCodePathState CodePathState =>
-        GovernanceCodePathState.Create(Scenario, State, RunStatus);
+        GovernanceCodePathState.Create(
+            Scenario,
+            State,
+            RunStatus,
+            Governance.PolicyDefinition);
 
     private bool IsReady =>
         RunStatus is null

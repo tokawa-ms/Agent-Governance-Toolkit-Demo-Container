@@ -74,7 +74,9 @@ builder.Services.AddSingleton<IPersistedAuditEventHub>(
 builder.Services.AddSingleton<BlobAuditSink>();
 builder.Services.AddSingleton<BlobAuditReader>();
 builder.Services.AddSingleton<StorageHealthMonitor>();
-builder.Services.AddSingleton<GovernanceDemoService>();
+builder.Services.AddSingleton(
+    _ => new GovernanceDemoService(
+        Path.Combine(builder.Environment.ContentRootPath, "policies", "default.yaml")));
 builder.Services.AddSingleton<IDemoToolExecutor, DeterministicDemoToolExecutor>();
 builder.Services.AddSingleton<DemoExecutionEventHub>();
 builder.Services.AddSingleton<DemoRunRateLimiter>();

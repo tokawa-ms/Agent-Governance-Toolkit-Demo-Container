@@ -62,6 +62,33 @@ public sealed class GovernanceCodePathStateTests
         Assert.All(
             state.Points.Skip(2),
             point => Assert.Equal(GovernanceCodePointStatus.NotTaken, point.Status));
+        Assert.Contains("allow-get-weather", state.PolicyDecisionSummary);
+        Assert.Contains("tool_name == 'GetWeather'", state.MatchedCondition);
+        Assert.Contains(
+            state.PolicyLines,
+            line => line.Text.Contains("name: allow-get-weather", StringComparison.Ordinal)
+                && line.Status == GovernanceCodePointStatus.Allowed);
+    }
+
+    [Fact]
+    public async Task Default_denied_run_explains_that_no_rule_matched()
+    {
+        using var service = new GovernanceDemoService();
+        var run = await new DemoRunCoordinator(service).RunAsync("unknown-default-denied");
+        var flow = ExecutionFlowState.FromEvents([], run);
+
+        var state = GovernanceCodePathState.Create(
+            run.Scenario,
+            flow,
+            run.Status,
+            service.PolicyDefinition);
+
+        Assert.Contains("default_action: deny", state.PolicyDecisionSummary);
+        Assert.Contains("合致する条件なし", state.MatchedCondition);
+        Assert.Contains(
+            state.PolicyLines,
+            line => line.Text.Contains("default_action: deny", StringComparison.Ordinal)
+                && line.Status == GovernanceCodePointStatus.Blocked);
     }
 
     [Fact]

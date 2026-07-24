@@ -30,6 +30,11 @@ public sealed record GovernanceCodePoint(
     string Description,
     GovernanceCodePointStatus Status);
 
+public sealed record GovernancePolicyLine(
+    int Number,
+    string Text,
+    GovernanceCodePointStatus Status);
+
 public sealed class GovernanceCodePathState
 {
     private static readonly IReadOnlyList<GovernanceCodeSnippet> Snippets =
@@ -82,13 +87,21 @@ public sealed class GovernanceCodePathState
         string toolName,
         string? matchedRule,
         string summary,
-        IReadOnlyList<GovernanceCodePoint> points)
+        IReadOnlyList<GovernanceCodePoint> points,
+        string policySourcePath,
+        IReadOnlyList<GovernancePolicyLine> policyLines,
+        string policyDecisionSummary,
+        string matchedCondition)
     {
         GateKind = gateKind;
         ToolName = toolName;
         MatchedRule = matchedRule;
         Summary = summary;
         Points = points;
+        PolicySourcePath = policySourcePath;
+        PolicyLines = policyLines;
+        PolicyDecisionSummary = policyDecisionSummary;
+        MatchedCondition = matchedCondition;
     }
 
     public GovernanceGateKind GateKind { get; }
@@ -120,6 +133,17 @@ public sealed class GovernanceCodePathState
 
     public IReadOnlyList<GovernanceCodeSnippet> CodeSnippets => Snippets;
 
+    public string PolicySourcePath { get; }
+
+    public IReadOnlyList<GovernancePolicyLine> PolicyLines { get; }
+
+    public string PolicyDecisionSummary { get; }
+
+    public string MatchedCondition { get; }
+
+    public GovernanceCodePointStatus PolicyDecisionStatus =>
+        Points[0].Status;
+
     public GovernanceCodePointStatus StatusFor(string? pointId) =>
         pointId is null
             ? GovernanceCodePointStatus.Pending
@@ -128,15 +152,25 @@ public sealed class GovernanceCodePathState
     public static GovernanceCodePathState Create(
         GovernanceScenario scenario,
         ExecutionFlowState flow,
-        DemoRunStatus? runStatus)
+        DemoRunStatus? runStatus,
+        GovernancePolicyDefinition? policyDefinition = null)
     {
         ArgumentNullException.ThrowIfNull(scenario);
         ArgumentNullException.ThrowIfNull(flow);
+
+        policyDefinition ??= new GovernancePolicyDefinition(
+            "組み込み default policy",
+            GovernanceDemoService.DefaultPolicyYaml);
 
         var gateKind = flow.Decision?.GateKind ?? ExpectedGateFor(scenario);
         var evaluationStatus = EvaluationStatus(flow, runStatus);
         var denyPathStatus = DenyPathStatus(flow, runStatus, evaluationStatus);
         var summary = SummaryFor(gateKind, scenario.ToolName, runStatus, evaluationStatus);
+        var policyLines = CreatePolicyLines(
+            policyDefinition.Yaml,
+            gateKind,
+            flow.Decision?.MatchedRule,
+            evaluationStatus);
 
         return new GovernanceCodePathState(
             gateKind,
@@ -169,7 +203,154 @@ public sealed class GovernanceCodePathState
                     "早期 return",
                     "許可後のツール実行境界へ到達する前に処理を終了します。",
                     denyPathStatus)
-            ]);
+            ],
+            policyDefinition.SourcePath,
+            policyLines,
+            PolicyDecisionSummaryFor(
+                gateKind,
+                scenario.ToolName,
+                flow.Decision?.MatchedRule,
+                runStatus,
+                evaluationStatus),
+            MatchedConditionFor(
+                policyLines,
+                gateKind,
+                flow.Decision?.MatchedRule,
+                runStatus));
+    }
+
+    private static IReadOnlyList<GovernancePolicyLine> CreatePolicyLines(
+        string yaml,
+        GovernanceGateKind gateKind,
+        string? matchedRule,
+        GovernanceCodePointStatus evaluationStatus)
+    {
+        var lines = yaml.ReplaceLineEndings("\n").Split('\n');
+        var highlighted = HighlightedLineNumbers(lines, gateKind, matchedRule);
+
+        return lines
+            .Select(
+                (line, index) => new GovernancePolicyLine(
+                    index + 1,
+                    line,
+                    highlighted.Contains(index)
+                        ? evaluationStatus
+                        : GovernanceCodePointStatus.Pending))
+            .ToArray();
+    }
+
+    private static HashSet<int> HighlightedLineNumbers(
+        IReadOnlyList<string> lines,
+        GovernanceGateKind gateKind,
+        string? matchedRule)
+    {
+        if (gateKind == GovernanceGateKind.PromptInjectionDetection)
+        {
+            return [];
+        }
+
+        if (gateKind == GovernanceGateKind.DefaultDeny)
+        {
+            return lines
+                .Select((line, index) => (line, index))
+                .Where(item => item.line.TrimStart().StartsWith("default_action:", StringComparison.Ordinal))
+                .Select(item => item.index)
+                .ToHashSet();
+        }
+
+        if (string.IsNullOrWhiteSpace(matchedRule))
+        {
+            return [];
+        }
+
+        var ruleStart = Enumerable.Range(0, lines.Count)
+            .FirstOrDefault(
+                index => lines[index].Trim().Equals(
+                    $"- name: {matchedRule}",
+                    StringComparison.Ordinal));
+
+        if (!lines[ruleStart].Trim().Equals($"- name: {matchedRule}", StringComparison.Ordinal))
+        {
+            return [];
+        }
+
+        var ruleEnd = Enumerable.Range(ruleStart + 1, lines.Count - ruleStart - 1)
+            .FirstOrDefault(
+                index => lines[index].TrimStart().StartsWith("- name:", StringComparison.Ordinal),
+                lines.Count);
+
+        return Enumerable.Range(ruleStart, ruleEnd - ruleStart).ToHashSet();
+    }
+
+    private static string MatchedConditionFor(
+        IReadOnlyList<GovernancePolicyLine> policyLines,
+        GovernanceGateKind gateKind,
+        string? matchedRule,
+        DemoRunStatus? runStatus)
+    {
+        if (runStatus is null)
+        {
+            return "実行後に合致条件を表示します。";
+        }
+
+        if (gateKind == GovernanceGateKind.PromptInjectionDetection)
+        {
+            return "組み込み prompt-injection detector（YAML ルール評価前）";
+        }
+
+        if (gateKind == GovernanceGateKind.DefaultDeny)
+        {
+            return "rules に合致する条件なし → default_action: deny";
+        }
+
+        var condition = policyLines
+            .Where(line => line.Status != GovernanceCodePointStatus.Pending)
+            .Select(line => line.Text.Trim())
+            .FirstOrDefault(line => line.StartsWith("condition:", StringComparison.Ordinal));
+
+        return string.IsNullOrWhiteSpace(condition)
+            ? matchedRule ?? "合致条件なし"
+            : $"{matchedRule}: {condition["condition:".Length..].Trim()}";
+    }
+
+    private static string PolicyDecisionSummaryFor(
+        GovernanceGateKind gateKind,
+        string toolName,
+        string? matchedRule,
+        DemoRunStatus? runStatus,
+        GovernanceCodePointStatus evaluationStatus)
+    {
+        if (runStatus == DemoRunStatus.Allowed)
+        {
+            return $"{toolName} はルール「{matchedRule}」の allow 条件に合致し、Governance Gate を通過しました。";
+        }
+
+        if (runStatus == DemoRunStatus.Denied)
+        {
+            return gateKind switch
+            {
+                GovernanceGateKind.ExplicitDenyRule =>
+                    $"{toolName} はルール「{matchedRule}」の deny 条件に合致したため、Governance Gate を通過できませんでした。",
+                GovernanceGateKind.DefaultDeny =>
+                    $"{toolName} に合致する allow ルールがないため、default_action: deny により Governance Gate を通過できませんでした。",
+                GovernanceGateKind.PromptInjectionDetection =>
+                    "入力から prompt injection が検出されたため、Governance Gate を通過できませんでした。",
+                _ => $"{toolName} は Governance Gate を通過できませんでした。"
+            };
+        }
+
+        if (runStatus == DemoRunStatus.Failed
+            || evaluationStatus == GovernanceCodePointStatus.Failed)
+        {
+            return "Governance Gate の評価を完了できませんでした。";
+        }
+
+        if (evaluationStatus == GovernanceCodePointStatus.Active)
+        {
+            return $"{toolName} を定義ファイルの条件と照合しています。";
+        }
+
+        return $"{toolName} はまだ Governance Gate で評価されていません。";
     }
 
     private static GovernanceGateKind ExpectedGateFor(GovernanceScenario scenario) =>

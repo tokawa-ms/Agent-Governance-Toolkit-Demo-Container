@@ -74,6 +74,8 @@ public sealed class PolicyTests
         var unknown = service.Evaluate("did:mesh:test-agent", "NotInPolicy");
 
         Assert.False(unknown.Allowed);
+        Assert.Equal("policies/default.yaml", service.PolicyDefinition.SourcePath);
+        Assert.Contains("name: governance-demo-default", service.PolicyDefinition.Yaml);
     }
 
     private static string FindPolicyPath()
