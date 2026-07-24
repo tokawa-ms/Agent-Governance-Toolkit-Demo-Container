@@ -1,0 +1,89 @@
+@using AgentGovernanceDemo.Presentation
+
+<section class="code-path" aria-labelledby="code-path-heading">
+    <div class="code-path-heading">
+        <div>
+            <p class="code-eyebrow">EXPLAINABLE GOVERNANCE</p>
+            <h4 id="code-path-heading">適用ゲートと C# コードパス</h4>
+        </div>
+        <span class="gate-badge">@State.GateLabel</span>
+    </div>
+
+    <p class="code-summary" role="status">@State.Summary</p>
+
+    <dl class="gate-facts">
+        <div>
+            <dt>対象ツール</dt>
+            <dd><code>@State.ToolName</code></dd>
+        </div>
+        <div>
+            <dt>一致ルール</dt>
+            <dd>@State.RuleLabel</dd>
+        </div>
+    </dl>
+
+    <div class="code-path-grid">
+        <ol class="path-points" aria-label="ガバナンスコードパスの状態">
+            @foreach (var point in State.Points)
+            {
+                <li class="point point-@StatusClass(point.Status)">
+                    <span class="point-marker" aria-hidden="true">@StatusIcon(point.Status)</span>
+                    <div>
+                        <strong>@point.Label</strong>
+                        <span class="point-status">@StatusLabel(point.Status)</span>
+                        <p>@point.Description</p>
+                    </div>
+                </li>
+            }
+        </ol>
+
+        <div class="snippet-list">
+            @foreach (var snippet in State.CodeSnippets)
+            {
+                <article class="snippet">
+                    <header>
+                        <strong>@snippet.Title</strong>
+                        <span>@snippet.SourcePath</span>
+                    </header>
+                    <pre aria-label="@($"{snippet.Title} の C# ソースコード抜粋")"><code>@foreach (var line in snippet.Lines)
+{
+    var status = State.StatusFor(line.PointId);
+<span class="code-line code-@StatusClass(status)">@line.Text</span>
+}</code></pre>
+                </article>
+            }
+        </div>
+    </div>
+</section>
+
+@code {
+    [Parameter, EditorRequired]
+    public GovernanceCodePathState State { get; set; } = default!;
+
+    private static string StatusClass(GovernanceCodePointStatus status) =>
+        status.ToString().ToLowerInvariant();
+
+    private static string StatusLabel(GovernanceCodePointStatus status) =>
+        status switch
+        {
+            GovernanceCodePointStatus.Pending => "待機",
+            GovernanceCodePointStatus.Active => "評価中",
+            GovernanceCodePointStatus.Allowed => "許可",
+            GovernanceCodePointStatus.Blocked => "拒否パス",
+            GovernanceCodePointStatus.NotTaken => "非通過",
+            GovernanceCodePointStatus.Failed => "失敗",
+            _ => "不明"
+        };
+
+    private static string StatusIcon(GovernanceCodePointStatus status) =>
+        status switch
+        {
+            GovernanceCodePointStatus.Pending => "○",
+            GovernanceCodePointStatus.Active => "●",
+            GovernanceCodePointStatus.Allowed => "✓",
+            GovernanceCodePointStatus.Blocked => "!",
+            GovernanceCodePointStatus.NotTaken => "—",
+            GovernanceCodePointStatus.Failed => "×",
+            _ => "?"
+        };
+}

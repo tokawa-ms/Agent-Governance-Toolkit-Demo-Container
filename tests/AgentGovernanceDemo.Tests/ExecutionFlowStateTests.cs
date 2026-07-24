@@ -214,5 +214,9 @@ public sealed class ExecutionFlowStateTests
             status,
             [],
             output,
-            decisionReason);
+            decisionReason,
+            GovernanceDecisionDetails.Create(
+                status == DemoRunStatus.Allowed,
+                decisionReason,
+                status == DemoRunStatus.Allowed ? "allow-get-weather" : null));
 }

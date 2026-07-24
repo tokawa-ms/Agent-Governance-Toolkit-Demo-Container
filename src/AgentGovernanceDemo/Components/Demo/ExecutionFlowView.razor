@@ -89,6 +89,8 @@
         </section>
     </div>
 
+    <GovernanceCodePathView State="CodePathState" />
+
     @if (!IsReady)
     {
         <p class="visually-hidden" aria-live="polite" aria-atomic="true">
@@ -103,11 +105,17 @@
     [Parameter, EditorRequired]
     public ExecutionFlowState State { get; set; } = ExecutionFlowState.Initial;
 
+    [Parameter, EditorRequired]
+    public GovernanceScenario Scenario { get; set; } = default!;
+
     [Parameter]
     public DemoRunStatus? RunStatus { get; set; }
 
     [Parameter]
     public string? RunDetail { get; set; }
+
+    private GovernanceCodePathState CodePathState =>
+        GovernanceCodePathState.Create(Scenario, State, RunStatus);
 
     private bool IsReady =>
         RunStatus is null

@@ -47,6 +47,46 @@ public enum DemoRunStepStatus
 }
 
 /// <summary>
+/// EN: Identifies the effective governance control that decided a tool request.<br/>
+/// JA: ツール要求を判断した実効ガバナンス制御を識別します。
+/// </summary>
+public enum GovernanceGateKind
+{
+    AllowlistRule,
+    ExplicitDenyRule,
+    DefaultDeny,
+    PromptInjectionDetection
+}
+
+/// <summary>
+/// EN: Carries structured decision metadata for explainable presentation.<br/>
+/// JA: 説明可能な表示に使用する構造化された判断メタデータを保持します。
+/// </summary>
+public sealed record GovernanceDecisionDetails(
+    GovernanceGateKind GateKind,
+    bool Allowed,
+    string? MatchedRule)
+{
+    public static GovernanceDecisionDetails Create(
+        bool allowed,
+        string reason,
+        string? matchedRule)
+    {
+        ArgumentNullException.ThrowIfNull(reason);
+
+        var gateKind = allowed
+            ? GovernanceGateKind.AllowlistRule
+            : !string.IsNullOrWhiteSpace(matchedRule)
+                ? GovernanceGateKind.ExplicitDenyRule
+                : reason.Contains("injection", StringComparison.OrdinalIgnoreCase)
+                    ? GovernanceGateKind.PromptInjectionDetection
+                    : GovernanceGateKind.DefaultDeny;
+
+        return new GovernanceDecisionDetails(gateKind, allowed, matchedRule);
+    }
+}
+
+/// <summary>
 /// EN: Captures one ordered stage in the completed run history.<br/>
 /// JA: 完了した実行履歴内の 1 つの順序付き段階を記録します。
 /// </summary>
@@ -70,7 +110,8 @@ public sealed record DemoRunState(
     DemoRunStatus Status,
     IReadOnlyList<DemoRunStep> Steps,
     string? Output,
-    string DecisionReason)
+    string DecisionReason,
+    GovernanceDecisionDetails Decision)
 {
     public bool Allowed => Status == DemoRunStatus.Allowed;
 }

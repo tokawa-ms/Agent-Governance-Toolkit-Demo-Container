@@ -84,6 +84,10 @@ public sealed class DemoRunCoordinator
         // Note 4 (JA): 判断結果には許可可否だけでなく、お客様へ説明できるポリシー理由も含まれます。
         // ---------------------------------------------------------------------
         var decision = _governance.Evaluate(AgentId, scenario.ToolName, scenario.Arguments);
+        var decisionDetails = GovernanceDecisionDetails.Create(
+            decision.Allowed,
+            decision.Reason,
+            decision.PolicyDecision?.MatchedRule);
         await AddStepAsync(
             steps,
             sessionId,
@@ -117,7 +121,8 @@ public sealed class DemoRunCoordinator
                 DemoRunStatus.Denied,
                 steps.AsReadOnly(),
                 null,
-                decision.Reason);
+                decision.Reason,
+                decisionDetails);
         }
 
         try
@@ -168,7 +173,8 @@ public sealed class DemoRunCoordinator
                 DemoRunStatus.Allowed,
                 steps.AsReadOnly(),
                 output,
-                decision.Reason);
+                decision.Reason,
+                decisionDetails);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -191,7 +197,8 @@ public sealed class DemoRunCoordinator
                 DemoRunStatus.Failed,
                 steps.AsReadOnly(),
                 null,
-                decision.Reason);
+                decision.Reason,
+                decisionDetails);
         }
     }
 

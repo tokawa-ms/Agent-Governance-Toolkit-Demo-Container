@@ -1,0 +1,259 @@
+.code-path {
+    display: grid;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(148, 163, 184, 0.28);
+    border-radius: 0.9rem;
+    background: rgba(2, 6, 23, 0.48);
+}
+
+.code-path-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.code-eyebrow {
+    margin: 0 0 0.25rem;
+    color: #a78bfa;
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+}
+
+.code-path-heading h4,
+.code-summary,
+.path-points,
+.point p,
+.gate-facts {
+    margin: 0;
+}
+
+.code-path-heading h4 {
+    font-size: 1rem;
+}
+
+.gate-badge,
+.point-status {
+    width: fit-content;
+    border-radius: 999px;
+    font-size: 0.68rem;
+    font-weight: 800;
+}
+
+.gate-badge {
+    padding: 0.38rem 0.62rem;
+    background: rgba(167, 139, 250, 0.14);
+    color: #c4b5fd;
+}
+
+.code-summary {
+    color: #dbeafe;
+    font-size: 0.82rem;
+    line-height: 1.55;
+}
+
+.gate-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1.5rem;
+}
+
+.gate-facts div {
+    display: grid;
+    gap: 0.18rem;
+}
+
+.gate-facts dt {
+    color: #7890a9;
+    font-size: 0.66rem;
+    font-weight: 800;
+}
+
+.gate-facts dd {
+    margin: 0;
+    color: #cbd5e1;
+    font-size: 0.76rem;
+}
+
+.gate-facts code {
+    color: #8fd9ff;
+}
+
+.code-path-grid {
+    display: grid;
+    grid-template-columns: minmax(12rem, 0.7fr) minmax(0, 1.3fr);
+    gap: 1rem;
+}
+
+.path-points {
+    display: grid;
+    align-content: start;
+    padding: 0;
+    list-style: none;
+}
+
+.point {
+    position: relative;
+    display: grid;
+    grid-template-columns: 1.7rem 1fr;
+    gap: 0.65rem;
+    padding-bottom: 0.85rem;
+    color: #94a3b8;
+}
+
+.point:not(:last-child)::after {
+    position: absolute;
+    top: 1.55rem;
+    bottom: 0;
+    left: 0.78rem;
+    border-left: 2px solid currentColor;
+    content: "";
+}
+
+.point-marker {
+    z-index: 1;
+    display: grid;
+    width: 1.6rem;
+    height: 1.6rem;
+    place-items: center;
+    border: 1px solid currentColor;
+    border-radius: 50%;
+    background: #0f172a;
+    font-weight: 900;
+}
+
+.point div {
+    display: grid;
+    gap: 0.28rem;
+}
+
+.point strong {
+    color: #e2e8f0;
+    font-size: 0.78rem;
+}
+
+.point-status {
+    padding: 0.16rem 0.42rem;
+    border: 1px solid currentColor;
+}
+
+.point p {
+    color: #94a3b8;
+    font-size: 0.72rem;
+    line-height: 1.45;
+}
+
+.point-active {
+    color: #60a5fa;
+}
+
+.point-allowed {
+    color: #34d399;
+}
+
+.point-blocked,
+.point-failed {
+    color: #fb7185;
+}
+
+.point-nottaken {
+    color: #64748b;
+}
+
+.snippet-list {
+    display: grid;
+    gap: 0.75rem;
+    min-width: 0;
+}
+
+.snippet {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid rgba(148, 163, 184, 0.22);
+    border-radius: 0.75rem;
+    background: #070d1a;
+}
+
+.snippet header {
+    display: grid;
+    gap: 0.2rem;
+    padding: 0.65rem 0.8rem;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.snippet header strong {
+    color: #e2e8f0;
+    font-size: 0.75rem;
+}
+
+.snippet header span {
+    color: #64748b;
+    font-size: 0.65rem;
+    overflow-wrap: anywhere;
+}
+
+.snippet pre {
+    margin: 0;
+    padding: 0.8rem;
+    overflow: auto;
+    color: #cbd5e1;
+    font-size: 0.72rem;
+    line-height: 1.6;
+}
+
+.code-line {
+    display: block;
+    min-height: 1.15rem;
+    padding: 0 0.35rem;
+    border-left: 3px solid transparent;
+    white-space: pre;
+}
+
+.code-active {
+    border-left-color: #60a5fa;
+    background: rgba(59, 130, 246, 0.16);
+    color: #bfdbfe;
+}
+
+.code-allowed {
+    border-left-color: #34d399;
+    background: rgba(16, 185, 129, 0.13);
+    color: #a7f3d0;
+}
+
+.code-blocked,
+.code-failed {
+    border-left-color: #fb7185;
+    background: rgba(244, 63, 94, 0.16);
+    color: #fecdd3;
+}
+
+.code-nottaken {
+    opacity: 0.55;
+}
+
+@media (max-width: 900px) {
+    .code-path-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 600px) {
+    .code-path-heading {
+        flex-direction: column;
+    }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+    .point-active .point-marker {
+        animation: code-point-pulse 1.8s ease-in-out infinite;
+    }
+}
+
+@keyframes code-point-pulse {
+    50% {
+        box-shadow: 0 0 0 0.35rem rgba(59, 130, 246, 0.14);
+    }
+}
