@@ -152,7 +152,7 @@ Open `http://localhost:8080` when running with Docker. To pass Azure configurati
 `scripts/bootstrap-service-principal.ps1` creates or reuses:
 
 - An Entra application and service principal for GitHub Actions deployment
-- An OIDC federated credential with subject `repo:<organization>/<repository>:environment:production`
+- An OIDC federated credential matching the subject issued by GitHub Actions
 - `Contributor` and `Role Based Access Control Administrator` on the target resource group
 
 ```powershell
@@ -164,6 +164,12 @@ Open `http://localhost:8080` when running with Docker. To pass Azure configurati
   -GitHubRepository '<repository>' `
   -GitHubEnvironment 'production'
 ```
+
+The usual subject is `repo:<organization>/<repository>:environment:production`. If the GitHub Actions
+log shows an ID-qualified subject such as
+`repo:<organization>@<organization-id>/<repository>@<repository-id>:environment:production`, rerun the
+script with that exact value in `-GitHubSubject '<subject claim>'`. The existing federated credential is
+updated in place.
 
 Bicep creates the runtime identity as a user-assigned managed identity. The application does not need a client secret.
 

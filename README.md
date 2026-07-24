@@ -152,7 +152,7 @@ Docker 実行時は `http://localhost:8080` を開きます。Azure 構成を渡
 `scripts\bootstrap-service-principal.ps1` は次を作成または再利用します。
 
 - GitHub Actions 配置用 Entra application/service principal
-- `repo:<organization>/<repository>:environment:production` を subject とする OIDC federated credential
+- GitHub Actions が発行する subject と一致する OIDC federated credential
 - 対象リソースグループの `Contributor` と `Role Based Access Control Administrator`
 
 ```powershell
@@ -164,6 +164,11 @@ Docker 実行時は `http://localhost:8080` を開きます。Azure 構成を渡
   -GitHubRepository '<repository>' `
   -GitHubEnvironment 'production'
 ```
+
+通常の subject は `repo:<organization>/<repository>:environment:production` です。GitHub Actions のログに
+`repo:<organization>@<organization-id>/<repository>@<repository-id>:environment:production` のような
+数値 ID 付き subject が表示される場合は、その値を `-GitHubSubject '<subject claim>'` で指定して再実行します。
+既存の federated credential は同じ名前で更新されます。
 
 Runtime identity は Bicep が User-assigned Managed Identity として作成します。アプリ用 client secret は不要です。
 

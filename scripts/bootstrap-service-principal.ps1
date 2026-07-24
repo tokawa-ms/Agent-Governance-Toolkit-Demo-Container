@@ -16,6 +16,7 @@ param(
     [string] $GitHubRepository,
 
     [string] $GitHubEnvironment = 'production',
+    [string] $GitHubSubject,
     [string] $DeploymentApplicationName = 'agt-demo-github-deploy'
 )
 
@@ -80,10 +81,16 @@ $deploymentApplication = Get-OrCreateApplication -DisplayName $DeploymentApplica
 $deploymentServicePrincipal = Get-OrCreateServicePrincipal -ApplicationId $deploymentApplication.appId
 
 $federatedCredentialName = "github-$GitHubOrganization-$GitHubRepository-$GitHubEnvironment".ToLowerInvariant()
+$federatedCredentialSubject = if ([string]::IsNullOrWhiteSpace($GitHubSubject)) {
+    "repo:$GitHubOrganization/$GitHubRepository`:environment:$GitHubEnvironment"
+}
+else {
+    $GitHubSubject
+}
 $federatedCredential = @{
     name        = $federatedCredentialName
     issuer      = 'https://token.actions.githubusercontent.com'
-    subject     = "repo:$GitHubOrganization/$GitHubRepository`:environment:$GitHubEnvironment"
+    subject     = $federatedCredentialSubject
     description = "GitHub Actions environment $GitHubEnvironment"
     audiences   = @('api://AzureADTokenExchange')
 }
@@ -92,8 +99,19 @@ $existingCredential = Invoke-AzJson -Arguments @(
     '--id', $deploymentApplication.appId
 ) | Where-Object name -eq $federatedCredentialName
 
-if (-not $existingCredential) {
-    $credentialJson = $federatedCredential | ConvertTo-Json -Compress
+if (-not $existingCredential -or $existingCredential.subject -ne $federatedCredentialSubject) {
+    $credentialPayload = if ($existingCredential) {
+        @{
+            issuer      = $federatedCredential.issuer
+            subject     = $federatedCredential.subject
+            description = $federatedCredential.description
+            audiences   = $federatedCredential.audiences
+        }
+    }
+    else {
+        $federatedCredential
+    }
+    $credentialJson = $credentialPayload | ConvertTo-Json -Compress
     $credentialFile = [System.IO.Path]::GetTempFileName()
     try {
         [System.IO.File]::WriteAllText(
@@ -101,13 +119,23 @@ if (-not $existingCredential) {
             $credentialJson,
             [System.Text.UTF8Encoding]::new($false)
         )
-        & az ad app federated-credential create `
-            --id $deploymentApplication.appId `
-            --parameters "@$credentialFile" `
-            --only-show-errors `
-            --output none
+        if ($existingCredential) {
+            & az ad app federated-credential update `
+                --id $deploymentApplication.appId `
+                --federated-credential-id $existingCredential.id `
+                --parameters "@$credentialFile" `
+                --only-show-errors `
+                --output none
+        }
+        else {
+            & az ad app federated-credential create `
+                --id $deploymentApplication.appId `
+                --parameters "@$credentialFile" `
+                --only-show-errors `
+                --output none
+        }
         if ($LASTEXITCODE -ne 0) {
-            throw 'Unable to create the GitHub OIDC federated credential.'
+            throw 'Unable to create or update the GitHub OIDC federated credential.'
         }
     }
     finally {
